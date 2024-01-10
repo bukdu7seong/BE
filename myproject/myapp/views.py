@@ -241,3 +241,33 @@ def get_friend_pending_list(request):
 
     except AppUser.DoesNotExist:
         return JsonResponse({'error': 'User not found'}, status=404)
+    
+@csrf_exempt # 삭제 예정 (테스트용) 보안 위험
+@require_http_methods(["POST"])
+def approve_friend_request(request):
+    # 요청 헤더에서 토큰 추출
+    token = request.headers.get('Authorization', '').split(' ')[-1]
+    
+    if not is_token_valid(token):
+        return JsonResponse({'error': 'Invalid token'}, status=400)
+
+    logged_in_user_id = get_user_id_from_token(token)
+    friend_id = request.GET.get('friendUserId')
+
+    if not friend_id:
+        return JsonResponse({'error': 'Nickname is required'}, status=400)
+
+    try:
+        logged_in_user = AppUser.objects.get(user_id=logged_in_user_id)
+        friend_user = AppUser.objects.get(user_id=friend_id)
+
+        friend_request = Friends.objects.get(user1=friend_user, user2=logged_in_user)
+        friend_request.status = 'APPROVED'
+        friend_request.save()
+
+        return JsonResponse({'message': 'Friend request approved'})
+
+    except AppUser.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except Friends.DoesNotExist:
+        return JsonResponse({'error': 'Friend request not found'}, status=404)
