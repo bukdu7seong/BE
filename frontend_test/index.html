@@ -1,0 +1,195 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Test</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <button id="getButton">GET Request</button>
+    <button id="postButton">POST Request</button>
+    <button id="deleteButton">DELETE Request</button>
+    <div>
+        <input type="text" id="userId" placeholder="User ID">
+        <input type="text" id="newImageUrl" placeholder="New Image URL">
+        <button id="putButton">PUT Request (Update Image)</button>
+    </div>
+    <p id="response"></p>
+
+    <script>
+        $(document).ready(function() {
+            $('#getButton').click(function() {
+                $.ajax({
+                    url: 'http://localhost:8000/profile?id=4', // Replace with your GET endpoint
+                    type: 'GET',
+                    success: function(response) {
+                        $('#response').html(JSON.stringify(response));
+                    }
+                });
+            });
+
+            $('#postButton').click(function() {
+                $.ajax({
+                    url: 'YOUR_API_ENDPOINT', // Replace with your POST endpoint
+                    type: 'POST',
+                    data: { /* Your data here */ },
+                    success: function(response) {
+                        $('#response').html(JSON.stringify(response));
+                    }
+                });
+            });
+
+            $('#deleteButton').click(function() {
+                $.ajax({
+                    url: 'YOUR_API_ENDPOINT', // Replace with your DELETE endpoint
+                    type: 'DELETE',
+                    success: function(response) {
+                        $('#response').html('Deleted successfully');
+                    }
+                });
+            });
+
+            $('#putButton').click(function() {
+                var userId = $('#userId').val();
+                var newImageUrl = $('#newImageUrl').val();
+                $.ajax({
+                    url: 'http://localhost:8000/update_image/' + userId + '/', // Replace with your PUT endpoint
+                    type: 'PUT',
+                    contentType: "application/json",
+                    data: JSON.stringify({ image: newImageUrl }),
+                    success: function(response) {
+                        $('#response').html(JSON.stringify(response));
+                    },
+                    error: function(response) {
+                        $('#response').html('Error: ' + response.responseText);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Test with Mock OAuth</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <input type="text" id="userId" placeholder="User ID">
+    <button id="loginButton">Login (Mock OAuth)</button>
+    <div id="apiTestSection" style="display:none;">
+        <button id="getButton">GET Request</button>
+        <button id="postButton">POST Request</button>
+        <button id="deleteButton">DELETE Request</button>
+        <div>
+            <input type="text" id="newImageUrl" placeholder="New Image URL">
+            <button id="putButton">PUT Request (Update Image)</button>
+        </div>
+        <p id="response"></p>
+    </div>
+    <script>
+        function showApiTestSection() {
+            $('#apiTestSection').show();
+        }
+
+        function getUserProfile() {
+        var token = sessionStorage.getItem('mockToken');
+        if (!token) {
+            alert("No token found. Please login first.");
+            return;
+        }
+
+        $.ajax({
+            url: 'http://localhost:8000/profile', // 프로필 정보 요청 엔드포인트
+            type: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            success: function(response) {
+                $('#response').html(JSON.stringify(response));
+            },
+            error: function(error) {
+                $('#response').html('Error: ' + error.responseText);
+            }
+        });
+    }
+
+        $('#loginButton').click(function() {
+            var userId = $('#userId').val();
+            var testToken = "mockToken_" + userId; // Create mock token
+
+            // 백엔드에 토큰 검증 요청을 보냄
+            $.ajax({
+                url: 'http://localhost:8000/verify_token', // 백엔드 인증 엔드포인트
+                type: 'POST',
+                contentType: "application/json",
+                data: JSON.stringify({ token: testToken }),
+                success: function(response) {
+                    sessionStorage.setItem('mockToken', testToken); // 성공 시 토큰 저장
+                    showApiTestSection(); // API 테스트 섹션 표시
+                    getUserProfile();
+                },
+                error: function(response) {
+                    alert('Login failed: ' + response.responseText);
+                }
+            });
+        });
+        $(document).ready(function() {
+            $('#getButton').click(function() {
+                getUserProfile();
+            });
+
+            $('#postButton').click(function() {
+                $.ajax({
+                    url: 'YOUR_API_ENDPOINT', // Replace with your POST endpoint
+                    type: 'POST',
+                    data: { /* Your data here */ },
+                    success: function(response) {
+                        $('#response').html(JSON.stringify(response));
+                    }
+                });
+            });
+
+            $('#deleteButton').click(function() {
+                $.ajax({
+                    url: 'YOUR_API_ENDPOINT', // Replace with your DELETE endpoint
+                    type: 'DELETE',
+                    success: function(response) {
+                        $('#response').html('Deleted successfully');
+                    }
+                });
+            });
+
+            $('#putButton').click(function() {
+                var newImageUrl = $('#newImageUrl').val();
+                var token = sessionStorage.getItem('mockToken'); // 세션에서 토큰 가져오기
+
+                if (!token) {
+                    $('#response').html('Error: No token found. Please login first.');
+                    return;
+                }
+
+                $.ajax({
+                    url: 'http://localhost:8000/update_image/', // 변경된 URL
+                    type: 'PUT',
+                    contentType: "application/json",
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    },
+                    data: JSON.stringify({ image: newImageUrl }),
+                    success: function(response) {
+                        $('#response').html(JSON.stringify(response));
+                    },
+                    error: function(response) {
+                        $('#response').html('Error: ' + response.responseText);
+                    }
+                });
+            });
+
+        });
+
+    </script>
+</body>
+</html>
