@@ -5,8 +5,6 @@ from myapp.models.appuser import AppUser
 class FriendStatus(models.TextChoices):
     PENDING = 'PENDING', _('Pending')
     ACCEPTED = 'ACCEPTED', _('Accepted')
-    DECLINED = 'DECLINED', _('Declined')
-    BLOCKED = 'BLOCKED', _('Blocked')
 
 class Friends(models.Model):
     user1 = models.ForeignKey(AppUser, on_delete=models.CASCADE, related_name='friends_user1')
