@@ -1,74 +1,4 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>API Test</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-</head>
-<body>
-    <button id="getButton">GET Request</button>
-    <button id="postButton">POST Request</button>
-    <button id="deleteButton">DELETE Request</button>
-    <div>
-        <input type="text" id="userId" placeholder="User ID">
-        <input type="text" id="newImageUrl" placeholder="New Image URL">
-        <button id="putButton">PUT Request (Update Image)</button>
-    </div>
-    <p id="response"></p>
 
-    <script>
-        $(document).ready(function() {
-            $('#getButton').click(function() {
-                $.ajax({
-                    url: 'http://localhost:8000/profile?id=4', // Replace with your GET endpoint
-                    type: 'GET',
-                    success: function(response) {
-                        $('#response').html(JSON.stringify(response));
-                    }
-                });
-            });
-
-            $('#postButton').click(function() {
-                $.ajax({
-                    url: 'YOUR_API_ENDPOINT', // Replace with your POST endpoint
-                    type: 'POST',
-                    data: { /* Your data here */ },
-                    success: function(response) {
-                        $('#response').html(JSON.stringify(response));
-                    }
-                });
-            });
-
-            $('#deleteButton').click(function() {
-                $.ajax({
-                    url: 'YOUR_API_ENDPOINT', // Replace with your DELETE endpoint
-                    type: 'DELETE',
-                    success: function(response) {
-                        $('#response').html('Deleted successfully');
-                    }
-                });
-            });
-
-            $('#putButton').click(function() {
-                var userId = $('#userId').val();
-                var newImageUrl = $('#newImageUrl').val();
-                $.ajax({
-                    url: 'http://localhost:8000/update_image/' + userId + '/', // Replace with your PUT endpoint
-                    type: 'PUT',
-                    contentType: "application/json",
-                    data: JSON.stringify({ image: newImageUrl }),
-                    success: function(response) {
-                        $('#response').html(JSON.stringify(response));
-                    },
-                    error: function(response) {
-                        $('#response').html('Error: ' + response.responseText);
-                    }
-                });
-            });
-        });
-    </script>
-</body>
-</html> -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,6 +9,10 @@
 <body>
     <input type="text" id="userId" placeholder="User ID">
     <button id="loginButton">Login (Mock OAuth)</button>
+    <input type="text" id="newUserEmail" placeholder="New User Email">
+    <input type="text" id="newUserImageURL" placeholder="New User Image URL">
+    <input type="text" id="newUserNickname" placeholder="New User Nickname">
+    <button id="addUserButton">Add User</button>
     <div id="apiTestSection" style="display:none;">
         <button id="getButton">GET Request</button>
         <button id="postButton">POST Request</button>
@@ -90,6 +24,38 @@
         <p id="response"></p>
     </div>
     <script>
+        function addNewUser() {
+        var email = $('#newUserEmail').val();
+        var imageUrl = $('#newUserImageURL').val();
+        var nickname = $('#newUserNickname').val();
+        var accessToken = 'token_' + Math.random().toString(36).substr(2, 9); // 랜덤 액세스 토큰 생성
+        var providerId = 'google_' + Math.random().toString(36).substr(2, 9); // 랜덤 고유 ID 생성
+
+        $.ajax({
+            url: 'http://localhost:8000/add_new_user',
+            type: 'POST',
+            contentType: "application/json",
+            data: JSON.stringify({
+                access_token: accessToken,
+                email: email,
+                provider: 'google',
+                provider_id: providerId,
+                image: imageUrl,
+                nickname: nickname
+            }),
+            success: function(response) {
+                $('#response').html('User added successfully: ' + JSON.stringify(response));
+            },
+            error: function(response) {
+                $('#response').html('Error adding user: ' + response.responseText);
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        $('#addUserButton').click(addNewUser);
+    });
+
         function showApiTestSection() {
             $('#apiTestSection').show();
         }
