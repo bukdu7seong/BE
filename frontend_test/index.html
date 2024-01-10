@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,153 +8,28 @@
 <body>
     <input type="text" id="userId" placeholder="User ID">
     <button id="loginButton">Login (Mock OAuth)</button>
+    </br>
     <input type="text" id="newUserEmail" placeholder="New User Email">
     <input type="text" id="newUserImageURL" placeholder="New User Image URL">
     <input type="text" id="newUserNickname" placeholder="New User Nickname">
     <button id="addUserButton">Add User</button>
     <div id="apiTestSection" style="display:none;">
-        <button id="getButton">GET Request</button>
-        <button id="postButton">POST Request</button>
-        <button id="deleteButton">DELETE Request</button>
+        <button id="getUserProfile">Login User Profile</button>
         <div>
             <input type="text" id="newImageUrl" placeholder="New Image URL">
-            <button id="putButton">PUT Request (Update Image)</button>
+            <button id="UpdateImage">PUT Request (Update Image)</button>
         </div>
         <p id="response"></p>
+        <div id="searchSection">
+            <input type="text" id="search" placeholder="User Nickname">
+            <button id="searchButton">Search User</button>
+            <button id="addFriendButton">Add Friend</button>
+        </div>
+        <div id="friendListSection">
+            <button id="getFriendListButton">Get Friend List</button>
+            <p id="friendList"></p>
+        </div>
     </div>
-    <script>
-        function addNewUser() {
-        var email = $('#newUserEmail').val();
-        var imageUrl = $('#newUserImageURL').val();
-        var nickname = $('#newUserNickname').val();
-        var accessToken = 'token_' + Math.random().toString(36).substr(2, 9); // 랜덤 액세스 토큰 생성
-        var providerId = 'google_' + Math.random().toString(36).substr(2, 9); // 랜덤 고유 ID 생성
-
-        $.ajax({
-            url: 'http://localhost:8000/add_new_user',
-            type: 'POST',
-            contentType: "application/json",
-            data: JSON.stringify({
-                access_token: accessToken,
-                email: email,
-                provider: 'google',
-                provider_id: providerId,
-                image: imageUrl,
-                nickname: nickname
-            }),
-            success: function(response) {
-                $('#response').html('User added successfully: ' + JSON.stringify(response));
-            },
-            error: function(response) {
-                $('#response').html('Error adding user: ' + response.responseText);
-            }
-        });
-    }
-
-    $(document).ready(function() {
-        $('#addUserButton').click(addNewUser);
-    });
-
-        function showApiTestSection() {
-            $('#apiTestSection').show();
-        }
-
-        function getUserProfile() {
-        var token = sessionStorage.getItem('mockToken');
-        if (!token) {
-            alert("No token found. Please login first.");
-            return;
-        }
-
-        $.ajax({
-            url: 'http://localhost:8000/profile', // 프로필 정보 요청 엔드포인트
-            type: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + token
-            },
-            success: function(response) {
-                $('#response').html(JSON.stringify(response));
-            },
-            error: function(error) {
-                $('#response').html('Error: ' + error.responseText);
-            }
-        });
-    }
-
-        $('#loginButton').click(function() {
-            var userId = $('#userId').val();
-            var testToken = "mockToken_" + userId; // Create mock token
-
-            // 백엔드에 토큰 검증 요청을 보냄
-            $.ajax({
-                url: 'http://localhost:8000/verify_token', // 백엔드 인증 엔드포인트
-                type: 'POST',
-                contentType: "application/json",
-                data: JSON.stringify({ token: testToken }),
-                success: function(response) {
-                    sessionStorage.setItem('mockToken', testToken); // 성공 시 토큰 저장
-                    showApiTestSection(); // API 테스트 섹션 표시
-                    getUserProfile();
-                },
-                error: function(response) {
-                    alert('Login failed: ' + response.responseText);
-                }
-            });
-        });
-        $(document).ready(function() {
-            $('#getButton').click(function() {
-                getUserProfile();
-            });
-
-            $('#postButton').click(function() {
-                $.ajax({
-                    url: 'YOUR_API_ENDPOINT', // Replace with your POST endpoint
-                    type: 'POST',
-                    data: { /* Your data here */ },
-                    success: function(response) {
-                        $('#response').html(JSON.stringify(response));
-                    }
-                });
-            });
-
-            $('#deleteButton').click(function() {
-                $.ajax({
-                    url: 'YOUR_API_ENDPOINT', // Replace with your DELETE endpoint
-                    type: 'DELETE',
-                    success: function(response) {
-                        $('#response').html('Deleted successfully');
-                    }
-                });
-            });
-
-            $('#putButton').click(function() {
-                var newImageUrl = $('#newImageUrl').val();
-                var token = sessionStorage.getItem('mockToken'); // 세션에서 토큰 가져오기
-
-                if (!token) {
-                    $('#response').html('Error: No token found. Please login first.');
-                    return;
-                }
-
-                $.ajax({
-                    url: 'http://localhost:8000/update_image/', // 변경된 URL
-                    type: 'PUT',
-                    contentType: "application/json",
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    },
-                    data: JSON.stringify({ image: newImageUrl }),
-                    success: function(response) {
-                        $('#response').html(JSON.stringify(response));
-                    },
-                    error: function(response) {
-                        $('#response').html('Error: ' + response.responseText);
-                    }
-                });
-            });
-
-        });
-
-    </script>
+    <script src="index.js"></script>
 </body>
 </html>
