@@ -1,6 +1,6 @@
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseNotFound
 from django.views.decorators.http import require_http_methods
-from .models import AppUser
+from myapp.models.appuser import AppUser
 from django.utils import timezone 
 import json
 
@@ -104,6 +104,54 @@ def update_user_image(request):
 
     except AppUser.DoesNotExist:
         return JsonResponse({'error': 'User not found'}, status=404)
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON")
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt # 삭제 예정 (테스트용) 보안 위험
+@require_http_methods(["PUT"])
+def add_new_user(request):
+    try:
+        data = json.loads(request.body)
+        new_user = AppUser(
+            access_token=data.get('access_token'),
+            email=data.get('email'),
+            provider=data.get('provider'),
+            provider_id=data.get('provider_id'),
+            image=data.get('image'),
+            two_fact=data.get('two_fact'),
+            nickname=data.get('nickname'),
+            created_at=data.get('created_at'),
+            updated_at=data.get('updated_at'),
+            language=data.get('language')
+        )
+        new_user.save()
+        return JsonResponse({'message': 'User added successfully'})
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON")
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt # 삭제 예정 (테스트용) 보안 위험
+@require_http_methods(["POST"])
+def add_new_user(request):
+    try:
+        data = json.loads(request.body)
+        new_user = AppUser(
+            access_token=data.get('access_token'),
+            email=data.get('email'),
+            provider=data.get('provider'),
+            provider_id=data.get('provider_id'),
+            image=data.get('image'),
+            two_fact=data.get('two_fact', False),
+            nickname=data.get('nickname'),
+            created_at=data.get('created_at', timezone.now()),
+            updated_at=data.get('updated_at', timezone.now()),
+            language=data.get('language', 'EN')
+        )
+        new_user.save()
+        return JsonResponse({'message': 'User added successfully'})
     except json.JSONDecodeError:
         return HttpResponseBadRequest("Invalid JSON")
     except Exception as e:
