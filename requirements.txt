@@ -1,0 +1,6 @@
+asgiref==3.7.2
+Django==5.0.1
+postgres==4.0
+psycopg2-binary==2.9.9
+psycopg2-pool==1.1
+sqlparse==0.4.4
