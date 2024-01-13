@@ -1,22 +1,16 @@
-"""
-URL configuration for ts project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
+from appuser.views import update_user_image, user_profile, add_new_user, get_user_by_nickname
+from friends.views import add_friend, get_friend_pending_list, approve_friend_request
+from security.views import verify_token
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('verify_token', verify_token, name='verify_token'),
+    path('update_image', update_user_image, name='update_user_image'),
+    path('profile', user_profile, name='user_profile'),
+    path('add_new_user', add_new_user, name='add_new_user'),
+    path('get_user_by_nickname', get_user_by_nickname, name='get_user_by_nickname'),
+    path('add_friend', add_friend, name='add_friend'),
+    path('get_friend_pending_list', get_friend_pending_list, name='get_friend_pending_list'),
+    path('approve_friend_request', approve_friend_request, name='approve_friend_request'),
 ]
+
