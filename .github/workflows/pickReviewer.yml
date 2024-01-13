@@ -16,7 +16,7 @@ jobs:
       id: pick_random_reviewer
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.TOKEN}}
+        github-token: ${{ secrets.TOKEN }}
         script: |
           const review_team = ['cfcf26', 'junyjeon', 'weejihye'];
           const candidate = review_team.filter((e) => e != '${{ github.event.pull_request.user.login }}');
