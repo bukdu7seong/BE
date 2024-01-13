@@ -1,4 +1,4 @@
-name: "Pick Random Reviwer"
+name: "Pick Random Reviewer"
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - opened
 
 jobs:
-  pick-random-reviwer:
+  pick-random-reviewer:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -29,13 +29,13 @@ jobs:
       uses: mshick/add-pr-comment@v1
       with:
         message: |
-          ${{ steps.pick_random_reviwer.outputs.comment }}
+          ${{ steps.pick_random_reviewer.outputs.comment }}
         repo-token: ${{ secrets.TOKEN }}
         repo-token-user-login: 'github-actions[bot]'
 
     - name: Add Pull Request Reviewer
       uses: madrapps/add-reviewers@v1
       with:
-        reviewers: ${{ steps.pick_random_reviwer.outputs.reviewer }}
+        reviewers: ${{ steps.pick_random_reviewer.outputs.reviewer }}
         token: ${{ secrets.TOKEN }}
 
