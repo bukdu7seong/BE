@@ -9,10 +9,10 @@
     <input type="text" id="userId" placeholder="User ID">
     <button id="loginButton">Login (Mock OAuth)</button>
     </br>
-    <input type="text" id="newUserEmail" placeholder="New User Email">
-    <input type="text" id="newUserImageURL" placeholder="New User Image URL">
-    <input type="text" id="newUserNickname" placeholder="New User Nickname">
-    <button id="addUserButton">Add User</button>
+        <input type="text" id="newUserEmail" placeholder="New User Email">
+        <input type="file" id="newUserImage" placeholder="New User Image">
+        <input type="text" id="newUserNickname" placeholder="New User Nickname">
+        <button id="addUserButton">Add User</button>
     <div id="apiTestSection" style="display:none;">
         <button id="getUserProfile">Login User Profile</button>
         <div>
@@ -29,6 +29,7 @@
             <button id="getFriendListButton">Get Friend List</button>
             <p id="friendList"></p>
         </div>
+        <button id="deleteUser">DELETE</button>
     </div>
     <script src="index.js"></script>
 </body>
