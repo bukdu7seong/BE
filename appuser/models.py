@@ -12,7 +12,7 @@ class AppUser(models.Model):
     email = models.EmailField(unique=True)
     provider = models.CharField(max_length=50, default='google')
     provider_id = models.CharField(max_length=50, unique=True)
-    image = models.URLField(null=True)
+    image = models.BinaryField(null=True)
     two_fact = models.BooleanField(default=False)
     nickname = models.CharField(max_length=50)
     created_at = models.DateTimeField(default=timezone.now)
