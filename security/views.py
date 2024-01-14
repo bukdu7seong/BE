@@ -14,19 +14,5 @@ def is_token_valid(token):
 def get_user_id_from_token(token):
     return token.replace('mockToken_', '')
 
-
-@csrf_exempt # 삭제 예정 (테스트용) 보안 위험
-@require_http_methods(["POST"])
-def verify_token(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        token = data.get('token')
-
-        if is_token_valid(token):
-            user_id = get_user_id_from_token(token)
-            if AppUser.objects.filter(user_id=user_id).exists():
-                return JsonResponse({'message': 'Token verified successfully'})
-            else:
-                return JsonResponse({'error': 'User does not exist'}, status=404)
-        else:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
+def get_token_from_request(request):
+    return request.headers.get('Authorization', '').split(' ')[-1]
