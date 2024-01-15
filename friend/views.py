@@ -16,17 +16,19 @@ class FriendView(View):
         if not logged_in_user_id:
             return JsonResponse({'error': 'Invalid token'}, status=400)
 
-        if user_id:
-            return self.approve_friend_request(request, logged_in_user_id, user_id)
+        if 'deny' in request.path:
+            return self.deny(request, logged_in_user_id, user_id)
+        elif user_id:
+            return self.approve(request, logged_in_user_id, user_id)
         else:
-            return self.add_friend(request, logged_in_user_id)
+            return self.add(request, logged_in_user_id)
 
     def get(self, request):
         logged_in_user_id = self._get_logged_in_user_id(request)
         if not logged_in_user_id:
             return JsonResponse({'error': 'Invalid token'}, status=400)
 
-        return self.get_friend_pending_list(request, logged_in_user_id)
+        return self.pending_list(request, logged_in_user_id)
 
     def _get_token(self, request):
         return request.headers.get('Authorization', '').split(' ')[-1]
@@ -38,69 +40,7 @@ class FriendView(View):
         else:
             return None
 
-    @method_decorator(csrf_exempt) # 삭제 예정 (테스트용) 보안 위험
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
-    def post(self, request, user_id=None):
-        logged_in_user_id = self._get_logged_in_user_id(request)
-        if not logged_in_user_id:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
-
-        if user_id:
-            return self.approve_friend_request(request, logged_in_user_id, user_id)
-        else:
-            return self.add_friend(request, logged_in_user_id)
-
-    def get(self, request):
-        logged_in_user_id = self._get_logged_in_user_id(request)
-        if not logged_in_user_id:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
-
-        return self.get_friend_pending_list(request, logged_in_user_id)
-
-    def _get_token(self, request):
-        return request.headers.get('Authorization', '').split(' ')[-1]
-
-    def _get_logged_in_user_id(self, request):
-        token = self._get_token(request)
-        if is_token_valid(token):
-            return get_user_id_from_token(token)
-        else:
-            return None
-        
-    @method_decorator(csrf_exempt) # 삭제 예정 (테스트용) 보안 위험
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
-    def post(self, request, user_id=None):
-        logged_in_user_id = self._get_logged_in_user_id(request)
-        if not logged_in_user_id:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
-
-        if user_id:
-            return self.approve_friend_request(request, logged_in_user_id, user_id)
-        else:
-            return self.add_friend(request, logged_in_user_id)
-
-    def get(self, request):
-        logged_in_user_id = self._get_logged_in_user_id(request)
-        if not logged_in_user_id:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
-
-        return self.get_friend_pending_list(request, logged_in_user_id)
-
-    def _get_token(self, request):
-        return request.headers.get('Authorization', '').split(' ')[-1]
-
-    def _get_logged_in_user_id(self, request):
-        token = self._get_token(request)
-        if is_token_valid(token):
-            return get_user_id_from_token(token)
-        else:
-            return None
-
-    def add_friend(self, request, logged_in_user_id):
+    def add(self, request, logged_in_user_id):
         user_id = request.POST.get('user_id')
         try:
             logged_in_user = AppUser.objects.get(user_id=logged_in_user_id)
@@ -122,7 +62,7 @@ class FriendView(View):
         except AppUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
 
-    def get_friend_pending_list(self, request, logged_in_user_id):
+    def pending_list(self, request, logged_in_user_id):
         page_size = request.GET.get('pageSize', 10)
         page = request.GET.get('page', 1)
 
@@ -145,7 +85,7 @@ class FriendView(View):
         except AppUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
 
-    def approve_friend_request(self, request, logged_in_user_id, user_id):
+    def approve(self, request, logged_in_user_id, user_id):
         try:
             logged_in_user = AppUser.objects.get(user_id=logged_in_user_id)
             friend_user = AppUser.objects.get(user_id=user_id)
@@ -155,6 +95,21 @@ class FriendView(View):
             friend_request.save()
 
             return JsonResponse({'message': 'Friend request approved'})
+
+        except AppUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except Friends.DoesNotExist:
+            return JsonResponse({'error': 'Friend request not found'}, status=404)
+
+    def deny(self, request, logged_in_user_id, user_id):
+        try:
+            logged_in_user = AppUser.objects.get(user_id=logged_in_user_id)
+            friend_user = AppUser.objects.get(user_id=user_id)
+
+            friend_request = Friends.objects.get(user1=friend_user, user2=logged_in_user, status='PENDING')
+            friend_request.delete()
+
+            return JsonResponse({'message': 'Friend request denied'})
 
         except AppUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
