@@ -2,6 +2,7 @@ from django.views import View
 from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.db.models import Q
 from friend.models import Friends
 from user.models import AppUser
 from security.views import is_token_valid, get_user_id_from_token
@@ -28,7 +29,11 @@ class FriendView(View):
         if not logged_in_user_id:
             return JsonResponse({'error': 'Invalid token'}, status=400)
 
-        return self.pending_list(request, logged_in_user_id)
+        # 쿼리 파라미터에 따라 대기 중인 친구 요청 목록 또는 승인된 친구 목록을 반환합니다.
+        if 'pending' in request.GET:
+            return self.pending_list(request, logged_in_user_id)
+        else:
+            return self.approved_list(request, logged_in_user_id)
 
     def _get_token(self, request):
         return request.headers.get('Authorization', '').split(' ')[-1]
@@ -61,6 +66,37 @@ class FriendView(View):
 
         except AppUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
+
+    def approved_list(self, request, logged_in_user_id):
+        page_size = request.GET.get('pageSize', 10)
+        page = request.GET.get('page', 1)
+
+        try:
+            logged_in_user = AppUser.objects.get(user_id=logged_in_user_id)
+            # 승인된 친구 관계를 가져옵니다.
+            friends = Friends.objects.filter(
+                (Q(user1=logged_in_user) | Q(user2=logged_in_user)) & Q(status='APPROVED')
+            )
+
+            paginator = Paginator(friends, page_size)
+            friends_page = paginator.get_page(page)
+
+            friend_list = []
+            for friend in friends_page:
+                # 친구의 정보를 가져옵니다. user1이 로그인한 사용자일 경우 user2의 정보를, 그 반대의 경우 user1의 정보를 가져옵니다.
+                friend_info = friend.user2 if friend.user1 == logged_in_user else friend.user1
+                friend_list.append({
+                    'user_id': friend_info.user_id,
+                    'nickname': friend_info.nickname,
+                    'image': friend_info.image
+                })
+
+            return JsonResponse({'friends': friend_list})
+
+        except AppUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except Paginator.DoesNotExist:
+            return JsonResponse({'error': 'Page not found'}, status=404)
 
     def pending_list(self, request, logged_in_user_id):
         page_size = request.GET.get('pageSize', 10)
