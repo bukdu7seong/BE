@@ -1,3 +1,4 @@
+
 from django.urls import path
 from user.views import update_user_image, user_profile, add_new_user, get_user_by_nickname
 from friend.views import add_friend, get_friend_pending_list, approve_friend_request
