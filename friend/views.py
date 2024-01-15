@@ -36,7 +36,9 @@ class FriendView(View):
         if is_token_valid(token):
             return get_user_id_from_token(token)
         else:
-            return None    @method_decorator(csrf_exempt) # 삭제 예정 (테스트용) 보안 위험
+            return None
+
+    @method_decorator(csrf_exempt) # 삭제 예정 (테스트용) 보안 위험
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
@@ -65,7 +67,9 @@ class FriendView(View):
         if is_token_valid(token):
             return get_user_id_from_token(token)
         else:
-            return None    @method_decorator(csrf_exempt) # 삭제 예정 (테스트용) 보안 위험
+            return None
+        
+    @method_decorator(csrf_exempt) # 삭제 예정 (테스트용) 보안 위험
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
