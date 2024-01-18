@@ -8,3 +8,5 @@ class Game(models.Model):
     created_at = models.DateTimeField()
     winner = models.CharField(max_length=50)
     options = models.CharField(max_length=20)
+    class Meta:
+        db_table = 'game'

@@ -50,8 +50,6 @@ INSTALLED_APPS = [
     'user', # 추가
     'friend', # 추가
     'game', # 추가
-    'security', # 추가
-    'sslserver'
 ]
 
 MIDDLEWARE = [
@@ -147,3 +145,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # 모든 도메인에서의 요청 허용 (개발/테스트용)
 CORS_ALLOW_ALL_ORIGINS = True
 
+import sys
+
+# 테스트 모드인지 확인하는 설정
+TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'

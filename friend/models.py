@@ -14,3 +14,8 @@ class Friends(models.Model):
         choices=FriendStatus.choices,
         default=FriendStatus.PENDING
     )
+    class Meta:
+        unique_together = ('user1', 'user2')
+        db_table = 'friends'
+        ordering = ['id']
+        
