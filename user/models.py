@@ -22,3 +22,5 @@ class AppUser(models.Model):
         choices=Language.choices,
         default=Language.ENGLISH
     )
+    class Meta:
+        db_table = 'app_user'
