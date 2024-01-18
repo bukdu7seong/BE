@@ -7,11 +7,11 @@ from user.models import AppUser
 
 class FriendView(View):
     def post(self, request, user_id=None):
-        logged_in_user_id = # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
+        logged_in_user_id = '1' # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
         return self.add(request, logged_in_user_id)
 
     def get(self, request):
-        logged_in_user_id = # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
+        logged_in_user_id = '1' # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
         
         if 'pending' in request.GET:
             return self.pending_list(request, logged_in_user_id)
@@ -93,7 +93,7 @@ class FriendView(View):
 
 class DenyFriendView(View):
     def post(self, request, user_id):
-        logged_in_user_id = # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
+        logged_in_user_id = '1' # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
         return self.deny(request, logged_in_user_id, user_id)
 
     def deny(self, request, logged_in_user_id, user_id):
@@ -114,7 +114,7 @@ class DenyFriendView(View):
 
 class ApproveFriendView(View):
     def post(self, request, user_id):
-        logged_in_user_id = # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다. 
+        logged_in_user_id = '1' # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다. 
         return self.approve(request, logged_in_user_id, user_id)
 
     def approve(self, request, logged_in_user_id, user_id):

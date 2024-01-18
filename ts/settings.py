@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'user', # 추가
     'friend', # 추가
     'game', # 추가
-    'security', # 추가
 ]
 
 MIDDLEWARE = [
