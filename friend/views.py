@@ -1,44 +1,23 @@
 from django.views import View
-from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.views.decorators.csrf import csrf_exempt
 from friend.models import Friends
 from user.models import AppUser
-from security.views import is_token_valid, get_user_id_from_token
-from django.conf import settings
 
 class FriendView(View):
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
     def post(self, request, user_id=None):
-        logged_in_user_id = self._get_logged_in_user_id(request)
-        if not logged_in_user_id:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
+        logged_in_user_id = # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
         return self.add(request, logged_in_user_id)
 
     def get(self, request):
-        logged_in_user_id = self._get_logged_in_user_id(request)
-        if not logged_in_user_id:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
+        logged_in_user_id = # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
         
         if 'pending' in request.GET:
             return self.pending_list(request, logged_in_user_id)
         else:
             return self.approved_list(request, logged_in_user_id)
 
-    def _get_token(self, request):
-        return request.headers.get('Authorization', '').split(' ')[-1]
-
-    def _get_logged_in_user_id(self, request):
-        token = self._get_token(request)
-        if is_token_valid(token):
-            return get_user_id_from_token(token)
-        else:
-            return None
 
     def add(self, request, logged_in_user_id):
         user_id = request.POST.get('user_id')
@@ -87,8 +66,6 @@ class FriendView(View):
 
         except AppUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
-        except Paginator.DoesNotExist:
-            return JsonResponse({'error': 'Page not found'}, status=404)
 
     def pending_list(self, request, logged_in_user_id):
         page_size = request.GET.get('pageSize', 10)
@@ -115,25 +92,9 @@ class FriendView(View):
 
 
 class DenyFriendView(View):
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
     def post(self, request, user_id):
-        logged_in_user_id = self._get_logged_in_user_id(request)
-        if not logged_in_user_id:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
+        logged_in_user_id = # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
         return self.deny(request, logged_in_user_id, user_id)
-
-    def _get_token(self, request):
-        return request.headers.get('Authorization', '').split(' ')[-1]
-
-    def _get_logged_in_user_id(self, request):
-        token = self._get_token(request)
-        if is_token_valid(token):
-            return get_user_id_from_token(token)
-        else:
-            return None
 
     def deny(self, request, logged_in_user_id, user_id):
         try:
@@ -152,25 +113,9 @@ class DenyFriendView(View):
 
 
 class ApproveFriendView(View):
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
     def post(self, request, user_id):
-        logged_in_user_id = self._get_logged_in_user_id(request)
-        if not logged_in_user_id:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
+        logged_in_user_id = # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다. 
         return self.approve(request, logged_in_user_id, user_id)
-
-    def _get_token(self, request):
-        return request.headers.get('Authorization', '').split(' ')[-1]
-
-    def _get_logged_in_user_id(self, request):
-        token = self._get_token(request)
-        if is_token_valid(token):
-            return get_user_id_from_token(token)
-        else:
-            return None
 
     def approve(self, request, logged_in_user_id, user_id):
         try:

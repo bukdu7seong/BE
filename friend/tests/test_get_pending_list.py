@@ -3,8 +3,12 @@
 # from user.models import AppUser
 # from friend.models import Friends, FriendStatus
 # from game.models import Game
+# from unittest.mock import patch
 
-# class GetApprovedFriendsTestCase(TestCase):
+# def mock_get_user_info(self, request):
+#     return '1'
+
+# class GetPendingListTestCase(TestCase):
 #     def setUp(self):
 #         # 데이터베이스 초기화
 #         Game.objects.all().delete()
@@ -12,16 +16,7 @@
 #         AppUser.objects.all().delete()
 
 #         self.client = Client()
-#         self.create_users()
-#         self.friend_url = reverse('friend')
 
-#     def tearDown(self):
-#         # 데이터베이스 정리
-#         Game.objects.all().delete()
-#         Friends.objects.all().delete()
-#         AppUser.objects.all().delete()
-
-#     def create_users(self):
 #         self.user1 = AppUser.objects.create(
 #             email='user1@test.com', 
 #             nickname='user1', 
@@ -64,13 +59,26 @@
 #             provider='google', 
 #             provider_id='provider6'
 #         )
+#         self.friend_url = reverse('friend')
+        
+#     def tearDown(self):
+#         # 데이터베이스 정리
+#         Game.objects.all().delete()
+#         Friends.objects.all().delete()
+#         AppUser.objects.all().delete()
 
-#     def test_get_approved_friends(self):
-#         Friends.objects.create(user1=self.user1, user2=self.user2, status=FriendStatus.ACCEPTED)
-#         Friends.objects.create(user1=self.user1, user2=self.user3, status=FriendStatus.PENDING)
-#         Friends.objects.create(user1=self.user1, user2=self.user4, status=FriendStatus.ACCEPTED)
-#         response = self.client.get(self.friend_url, HTTP_AUTHORIZATION=self.user1.access_token)
-#         print(response.json())
+    
+#     @patch('friend.views.FriendView._get_logged_in_user_id', mock_get_user_info)
+#     def test_get_pending_friends(self):
+#         Friends.objects.create(user1=self.user2, user2=self.user1, status='PENDING')
+#         Friends.objects.create(user1=self.user3, user2=self.user1, status='PENDING')
+#         Friends.objects.create(user1=self.user4, user2=self.user1, status=FriendStatus.ACCEPTED)
+#         request_url = self.friend_url + 'request?pending=true&pageSize=3&page=1'
+#         print("Request URL: ", request_url)
+#         response = self.client.get(request_url, HTTP_AUTHORIZATION=self.user1.access_token)
 #         print("Response: ", response.content)
+#         if response.status_code == 200:
+#             print("Response: ", response.json())
 #         self.assertEqual(response.status_code, 200)
 #         self.assertEqual(len(response.json()['friends']), 2)
+    
