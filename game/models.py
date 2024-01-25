@@ -1,6 +1,7 @@
 from django.db import models
-from user.models import AppUser
+from django.contrib.auth import get_user_model
 
+AppUser = get_user_model()
 class Game(models.Model):
     game_id = models.AutoField(primary_key=True)
     player1 = models.ForeignKey(AppUser, on_delete=models.CASCADE, related_name='player1_games')

@@ -197,5 +197,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
 # 이미지 업로드
-MEDIA_ROOT = os.path.join(BASE_DIR, '')
 MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

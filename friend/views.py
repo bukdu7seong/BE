@@ -2,8 +2,10 @@ from django.views import View
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
-from friend.models import Friends
-from user.models import AppUser
+from .models import Friends
+from django.contrib.auth import get_user_model
+
+AppUser = get_user_model()
 
 class FriendView(View):
     def post(self, request, user_id=None):

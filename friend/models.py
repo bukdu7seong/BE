@@ -1,7 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from user.models import AppUser
+from django.contrib.auth import get_user_model
 
+AppUser = get_user_model()
 class FriendStatus(models.TextChoices):
     PENDING = 'PENDING', _('Pending')
     ACCEPTED = 'ACCEPTED', _('Accepted')
