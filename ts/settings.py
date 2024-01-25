@@ -195,3 +195,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # 테스트 모드인지 확인하는 설정
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
+
+# 이미지 업로드
+MEDIA_ROOT = os.path.join(BASE_DIR, '')
+MEDIA_URL = '/media/'

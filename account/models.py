@@ -37,6 +37,12 @@ class User(AbstractBaseUser):
     )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+
+    provider = models.CharField(max_length=100, blank=True)
+    provider_url = models.URLField(blank=True)
+
+    image = models.ImageField(upload_to='')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
