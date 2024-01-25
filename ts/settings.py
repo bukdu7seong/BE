@@ -14,6 +14,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 import environ
 from pathlib import Path
+from datetime import timedelta
+import sys
 
 env = environ.Env(
     DEBUG=(bool, True)
@@ -36,24 +38,70 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
+    'account',  # 추가
+    'friend',  # 추가
+    'game',  # 추가
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders', # 추가
-    'user', # 추가
-    'friend', # 추가
-    'game', # 추가
+    'rest_framework',  # 추가
+    'rest_framework_simplejwt',  # 추가
+    'debug_toolbar',  # 추가
+    'corsheaders',  # 추가
+    'bootstrap4',  # 추가
+    'sslserver',  # 추가
 ]
 
+AUTH_USER_MODEL = 'account.User'
+REST_USE_JWT = False
+LOGIN_URL = "/account/login/"
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     )
+# }
+#
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+#     'ROTATE_REFRESH_TOKENS': False,
+#     'BLACKLIST_AFTER_ROTATION': False,
+#     'UPDATE_LAST_LOGIN': False,
+#
+#     'ALGORITHM': 'HS256',
+#     'SIGNING_KEY': SECRET_KEY,
+#     'VERIFYING_KEY': None,
+#     'AUDIENCE': None,
+#     'ISSUER': None,
+#     'JWK_URL': None,
+#     'LEEWAY': 0,
+#
+#     'AUTH_HEADER_TYPES': ('Bearer',),
+#     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+#     'USER_ID_FIELD': 'id',
+#     'USER_ID_CLAIM': 'user_id',
+#     'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+#
+#     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+#     'TOKEN_TYPE_CLAIM': 'token_type',
+#     'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+#
+#     'JTI_CLAIM': 'jti',
+#
+#     'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+#     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+#     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+# }
+
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # 추가
+    'corsheaders.middleware.CorsMiddleware',  # 추가
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -61,7 +109,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware'  # 추가
 ]
+
+INTERNAL_IPS = ('127.0.0.1')
 
 ROOT_URLCONF = 'ts.urls'
 
@@ -82,7 +133,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ts.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
@@ -119,7 +169,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
@@ -130,7 +179,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
@@ -144,8 +192,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 모든 도메인에서의 요청 허용 (개발/테스트용)
 CORS_ALLOW_ALL_ORIGINS = True
-
-import sys
 
 # 테스트 모드인지 확인하는 설정
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
