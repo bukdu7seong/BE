@@ -4,6 +4,7 @@ from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser)
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
+
     def create_user(self, email, username):
         if not email:
             raise ValueError('Users must have an email address')
@@ -25,6 +26,12 @@ class UserManager(BaseUserManager):
         return user
 
 
+LANGUAGE_CHOICES = (
+    ('EN', 'English'),
+    ('FR', 'French'),
+    ('KR', 'Korean'),
+)
+
 class User(AbstractBaseUser):
     username = models.CharField(
         verbose_name='username',
@@ -39,7 +46,11 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)
 
     provider = models.CharField(max_length=100, blank=True)
-    provider_url = models.URLField(blank=True)
+    provider_id = models.URLField(blank=True)
+
+    twoFactor = models.BooleanField(default=True)
+
+    language = models.CharField(choices=LANGUAGE_CHOICES, max_length=4, default='KR')
 
     image = models.ImageField(upload_to='images/', blank=True, null=True)
 
