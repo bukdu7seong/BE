@@ -1,29 +1,32 @@
 from django.db import models
-from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser)
+from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser, PermissionsMixin)
 
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
-    def create_user(self, email, username):
+    def create_user(self, username, email, password, **kwargs):
         if not email:
             raise ValueError('Users must have an email address')
 
         user = self.model(
-            email=self.normalize_email(email),
+            email=email,
             username=username,
+            password=password,
         )
+        user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, username):
-        user = self.create_user(
-            email,
+    def create_superuser(self, email, username, password=None, **extra_fields):
+        superuser = self.create_user(
             username=username,
+            email=email,
+            password=password,
         )
-        user.is_staff = True
-        user.save(using=self._db)
-        return user
+        superuser.is_staff = True
+        superuser.save(using=self._db)
+        return superuser
 
 
 LANGUAGE_CHOICES = (
@@ -32,21 +35,27 @@ LANGUAGE_CHOICES = (
     ('KR', 'Korean'),
 )
 
-class User(AbstractBaseUser):
+
+class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(
         verbose_name='username',
-        max_length=255,
+        max_length=20,
         unique=True)
+    intraId = models.CharField(
+        max_length=20,
+        blank=True,
+    )
     email = models.EmailField(
         verbose_name='email',
-        max_length=255,
+        max_length=30,
         unique=True,
+    )
+    password = models.CharField(
+        verbose_name='password',
+        max_length=255,
     )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-
-    provider = models.CharField(max_length=100, blank=True)
-    provider_id = models.URLField(blank=True)
 
     twoFactor = models.BooleanField(default=True)
 
@@ -66,4 +75,4 @@ class User(AbstractBaseUser):
         return self.username
 
     class Meta:
-        db_table = 'account'
+        db_table = 'user'
