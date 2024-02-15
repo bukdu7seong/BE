@@ -6,6 +6,6 @@ from .models import User
 
 @admin.register(User)
 class accountAdmin(admin.ModelAdmin):
-    list_display = ['id', 'username', 'password', 'email', 'intraId', 'language', 'image']
+    list_display = ['id', 'username', 'password', 'email', 'language', 'image']
     list_display_links = ['username']
     list_filter = ['created_at', 'is_active']
