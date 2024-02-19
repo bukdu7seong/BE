@@ -12,7 +12,17 @@ from rest_framework.decorators import action
 from rest_framework.viewsets import ViewSet
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
 
+
+#redirect to 42oauth page
+def get_42authorization(request):
+    redirect_uri = (f"https://api.intra.42.fr/oauth/authorize?"
+                    f"client_id={settings.FT_OAUTH_CONFIG['client_id']}"
+                    f"&redirect_uri={settings.FT_OAUTH_CONFIG['redirect_uri']}"
+                    f"&response-type=code")
+    print(redirect_uri)
+    return redirect(redirect_uri)
 
 # Login View
 class MyLoginView(ViewSet):
@@ -91,32 +101,20 @@ class MyLoginView(ViewSet):
 class SignupView(APIView):
     permission_classes = [AllowAny]
 
-    # def post(self, request):
-    #     serializer = UserRegistrationSerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         user = serializer.save()
-    #         refresh = RefreshToken.for_user(user)
-    #         print("1")
-    #         return Response({
-    #             'user': {
-    #                 'email': user.email,
-    #                 'username': user.username
-    #             },
-    #             'refresh': str(refresh),
-    #             'access': str(refresh.access_token),
-    #         }, status=status.HTTP_201_CREATED)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    #
     def post(self, request):
         data = json.loads(request.body)
-        user = User.objects.create_user(
-            username=data.get('username'),
-            email=data.get('email'),
-            password=data.get('password'),
-        )
+        try:
+            user = User.objects.create_user(
+                username=data.get('username'),
+                email=data.get('email'),
+                password=data.get('password'),
+            )
+        except ValidationError as e:
+            return Response({"message": e.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError as e:
+            return Response({"message": "integrity Error"}, status=status.HTTP_400_BAD_REQUEST)
         user.save()
-        return HttpResponse("ok")
+        return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
 
 
 class TestView(APIView):
@@ -124,26 +122,5 @@ class TestView(APIView):
         return HttpResponse("ok")
 
 
-def get_42authorization(request):
-    url = "https://api.intra.42.fr/oauth/token"
-    data = {
-        "grant_type": "client_credentials",
-        "client_id": "u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944",
-        "client_secret": "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",
-        "scope": "public"
-    }
-    try:
-        response = requests.post(url, data=data)
-        if response.status_code == 200:
-            return redirect("https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud"
-                            "-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944&redirect_uri=http%3A"
-                            "%2F%2F127.0.0.1%3A8000%2Faccount&response_type=code")
-        else:
-            return HttpResponse(response.content, status=response.status_code)
-    except requests.exceptions.RequestException as e:
-        return HttpResponse(str(e), status=50)
 
-
-def name(request):
-    return HttpResponse("Hello, world. You're at the", status=200)
 

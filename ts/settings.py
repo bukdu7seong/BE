@@ -188,3 +188,11 @@ TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 # 이미지 업로드
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+FT_OAUTH_CONFIG = {
+    'client_id' : env('FT_CLIENT_ID'),
+    'client_secret' : env('FT_CLIENT_SECRET'),
+    'redirect_uri' : env('FT_REDIRECT_URI'),
+    'auth_redirect_uri' : env('FT_AUTH_REDIRECT_URI'),
+}
+
