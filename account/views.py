@@ -7,10 +7,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializer import CustomTokenObtainPairSerializer, Custom42TokenObtainPairSerializer
+from .serializer import CustomTokenObtainPairSerializer, UserRegistrationSerializer
 from rest_framework.decorators import action
 from rest_framework.viewsets import ViewSet
 import requests
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 # Login View
@@ -26,20 +27,22 @@ class MyLoginView(ViewSet):
         except User.DoesNotExist:
             return Response('have to redirect to sign up', status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=False, methods=['post'], url_path='login/42')
-    def login(self, request):
+    @action(detail=False, methods=['post'], url_path='42code')
+    def ft_login(self, request):
         code = request.query_params.get('code', None)
         if code is not None:
-            response = self.get_42_access_token(code)
+            response = self._get_42_access_token(code)
             if response.status_code == 200:
-                email = self.get_42_email(response)
+                email = self._get_42_email(response)
                 try:
                     user = User.objects.get(email=email)
                     request.data['email'] = email
-                    if user.twoFactor:
-                        return Response({"twoFactor": True}, status=status.HTTP_301_MOVED_PERMANENTLY)
-                    else:
-                        return self._get_42_user_token(request)
+                    refresh = RefreshToken.for_user(user)
+                    return Response({
+                                     'refresh': str(refresh),
+                                     'access': str(refresh.access_token),
+                                   })
+
                 except User.DoesNotExist:
                     return Response(email, status=status.HTTP_404_NOT_FOUND)
             else:
@@ -47,7 +50,7 @@ class MyLoginView(ViewSet):
         else:
             return Response('fail to get code', status=400)
 
-    def get_42_email(self, response):
+    def _get_42_email(self, response):
         js = response.json()
         token = js.get('access_token')
         user_info = requests.get('https://api.intra.42.fr/v2/me', headers={'Authorization': 'Bearer ' + token})
@@ -56,7 +59,7 @@ class MyLoginView(ViewSet):
         else:
             return None
 
-    def get_42_access_token(self, code):
+    def _get_42_access_token(self, code):
         data = {
             "grant_type": "authorization_code",
             "client_id": "u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944",
@@ -84,28 +87,41 @@ class MyLoginView(ViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# # SignUp View
-# class SignupView(APIView):
-#     def post(self, request, format=None):
+# SignUp View
+class SignupView(APIView):
+    permission_classes = [AllowAny]
+
+    # def post(self, request):
+    #     serializer = UserRegistrationSerializer(data=request.data)
+    #     if serializer.is_valid():
+    #         user = serializer.save()
+    #         refresh = RefreshToken.for_user(user)
+    #         print("1")
+    #         return Response({
+    #             'user': {
+    #                 'email': user.email,
+    #                 'username': user.username
+    #             },
+    #             'refresh': str(refresh),
+    #             'access': str(refresh.access_token),
+    #         }, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    #
+    def post(self, request):
+        data = json.loads(request.body)
+        user = User.objects.create_user(
+            username=data.get('username'),
+            email=data.get('email'),
+            password=data.get('password'),
+        )
+        user.save()
+        return HttpResponse("ok")
+
 
 class TestView(APIView):
     def get(self, request, *args, **kwargs):
         return HttpResponse("ok")
-
-
-def check_signup(user_info):
-    return False
-
-
-def create(request):
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        content = request.POST.get('content')
-        user = User(title=title, content=content)
-        user.save()
-        return redirect('articles:index')
-    else:
-        return render(request, 'articles/create.html')
 
 
 def get_42authorization(request):
@@ -131,13 +147,3 @@ def get_42authorization(request):
 def name(request):
     return HttpResponse("Hello, world. You're at the", status=200)
 
-
-def signup(request):
-    data = json.loads(request.body)
-    user = User.objects.create_user(
-        username=data.get('username'),
-        email=data.get('email'),
-        password=data.get('password'),
-    )
-    user.save()
-    return HttpResponse("ok")
