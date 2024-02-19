@@ -20,7 +20,7 @@ class MyLoginView(ViewSet):
 
     @action(detail=False, methods=['post'], url_path='login')
     def login_account(self, request):
-        username = request.data.get('username', None)
+        username = request.data.get('username')
         try:
             user = User.objects.get(username=username)
             return self._get_user_token(request)
