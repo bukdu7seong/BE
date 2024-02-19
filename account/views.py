@@ -21,8 +21,7 @@ def get_42authorization(request):
                     f"client_id={settings.FT_OAUTH_CONFIG['client_id']}"
                     f"&redirect_uri={settings.FT_OAUTH_CONFIG['redirect_uri']}"
                     f"&response-type=code")
-    print(redirect_uri)
-    return redirect(redirect_uri)
+    return Response("redirect_uri", status=status.HTTP_200_OK)
 
 # Login View
 class MyLoginView(ViewSet):
