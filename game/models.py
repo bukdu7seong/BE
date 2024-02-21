@@ -11,7 +11,7 @@ class Game(models.Model):
     )
     winner = models.ForeignKey(AppUser, related_name='games_won', on_delete=models.CASCADE)
     loser = models.ForeignKey(AppUser, related_name='games_lost', on_delete=models.CASCADE)
-    game_mode = models.CharField(max_length=100, choices=GAME_MODE_CHOICES)
+    game_mode = models.CharField(max_length=100, choices=GAME_MODE_CHOICES, default='normal')
     played_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
