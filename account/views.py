@@ -1,99 +1,141 @@
 import json
 
 from django.shortcuts import render, redirect
-from django.http import HttpResponse, HttpRequest
+from django.http import HttpResponse
 from .models import User
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .serializer import CustomTokenObtainPairSerializer, UserRegistrationSerializer
+from rest_framework.decorators import action
+from rest_framework.viewsets import ViewSet
 import requests
-from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
 
 
-# Create your views here.
+#redirect to 42oauth page
+def get_42authorization(request):
+    redirect_uri = (f"https://api.intra.42.fr/oauth/authorize?"
+                    f"client_id={settings.FT_OAUTH_CONFIG['client_id']}"
+                    f"&redirect_uri={settings.FT_OAUTH_CONFIG['redirect_uri']}"
+                    f"&response-type=code")
+    print(redirect_uri)
+    return HttpResponse(json.dumps({'url' : redirect_uri}), status=status.HTTP_200_OK)
 
-def check_signup(user_info):
-    return False
+# Login View
+class MyLoginView(ViewSet):
+    permission_classes = [AllowAny]
 
+    @action(detail=False, methods=['post'], url_path='login')
+    def login_account(self, request):
+        username = request.data.get('username')
+        try:
+            user = User.objects.get(username=username)
+            return self._get_user_token(request)
+        except User.DoesNotExist:
+            return Response('have to redirect to sign up', status=status.HTTP_404_NOT_FOUND)
 
-def get_42_access_token(code):
-    data = {
-        "grant_type": "authorization_code",
-        "client_id": "u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944",
-        "client_secret": "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",
-        "code": code,
-        "redirect_uri": "http://127.0.0.1:8000/account",
-    }
-    try:
-        return requests.post("https://api.intra.42.fr/oauth/token", data=data)
-    except requests.exceptions.RequestException as e:
-        return HttpResponse(str(e), status=500)
+    @action(detail=False, methods=['post'], url_path='42code')
+    def ft_login(self, request):
+        code = request.query_params.get('code', None)
+        if code is not None:
+            response = self._get_42_access_token(code)
+            if response.status_code == 200:
+                email = self._get_42_email(response)
+                try:
+                    user = User.objects.get(email=email)
+                    request.data['email'] = email
+                    refresh = RefreshToken.for_user(user)
+                    return Response({
+                                     'refresh': str(refresh),
+                                     'access': str(refresh.access_token),
+                                   })
 
-
-def get_42_user_info(response):
-    js = response.json();
-    ts = js.get('access_token')
-    user_info = requests.get('https://api.intra.42.fr/v2/me', headers={'Authorization': 'Bearer ' + ts})
-    if user_info.status_code == 200:
-        return user_info.json()['email']
-    else:
-        return None
-
-
-def login_42oauth(request):
-    code = request.GET.get('code', None)
-    if code is not None:
-        response = get_42_access_token(code)
-        if response.status_code == 200:
-            email = get_42_user_info(response)
-            try:
-                user = User.objects.get(email=email)
-                return HttpResponse('http://localhost:8000/account/', status=200)
-            except User.DoesNotExist:
-                return HttpResponse('have to redirect to sign up', status=404)
+                except User.DoesNotExist:
+                    return Response(email, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response('fail to get 42 access token', status=400)
         else:
-            return HttpResponse('fail to get 42 access token', status=400)
-    else:
-        return HttpResponse('fail to get code', status=400)
+            return Response('fail to get code', status=400)
+
+    def _get_42_email(self, response):
+        js = response.json()
+        token = js.get('access_token')
+        user_info = requests.get('https://api.intra.42.fr/v2/me', headers={'Authorization': 'Bearer ' + token})
+        if user_info.status_code == 200:
+            return user_info.json()['email']
+        else:
+            return None
+
+    def _get_42_access_token(self, code):
+        data = {
+            "grant_type": "authorization_code",
+            "client_id": "u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944",
+            "client_secret": "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",
+            "code": code,
+            "redirect_uri": "http://127.0.0.1:8000/account",
+        }
+        try:
+            return requests.post("https://api.intra.42.fr/oauth/token", data=data)
+        except requests.exceptions.RequestException as e:
+            return HttpResponse(str(e), status=500)
+
+    def _get_user_token(self, request):
+        serializer = CustomTokenObtainPairSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def _get_42_user_token(self, request):
+        serializer = Custom42TokenObtainPairSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def create(request):
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        content = request.POST.get('content')
-        user = User(title=title, content=content)
+# SignUp View
+class SignupView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        data = json.loads(request.body)
+        try:
+            user = User.objects.create_user(
+                username=data.get('username'),
+                email=data.get('email'),
+                password=data.get('password'),
+            )
+        except ValidationError as e:
+            return Response({"message": e.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError as e:
+            return Response({"message": "integrity Error"}, status=status.HTTP_400_BAD_REQUEST)
         user.save()
-        return redirect('articles:index')
-    else:
-        return render(request, 'articles/create.html')
+        return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
 
 
-def get_oauth_token(request):
-    url = "https://api.intra.42.fr/oauth/token"
-    data = {
-        "grant_type": "client_credentials",
-        "client_id": "u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944",
-        "client_secret": "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",
-        "scope": "public"
-    }
-    try:
-        response = requests.post(url, data=data)
-        if response.status_code == 200:
-            return redirect(
-                "https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944&redirect_uri=http%3A%2F%2F127.0.0.1%3A8000%2Faccount&response_type=code")
-        else:
-            return HttpResponse(response.content, status=response.status_code)
-    except requests.exceptions.RequestException as e:
-        return HttpResponse(str(e), status=50)
+class TestView(APIView):
+    def get(self, request, *args, **kwargs):
+        return HttpResponse("ok")
 
 
-def name(request):
-    return HttpResponse("Hello, world. You're at the", status=200)
+from django.http import JsonResponse
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
 
-def signup(request):
-    data = json.loads(request.body)
-    user = User.objects.create_user(
-        username=data.get('username'),
-        email=data.get('email'),
-        password=data.get('password'),
-    )
-    user.save()
-    return HttpResponse("ok")
+    def get(self, request, userId):
+        user = get_object_or_404(User, pk=userId)
+        user_data = {
+            'username': user.username,
+            'email': user.email,
+            'image_url': user.image.url if user.image else None,
+            'created_at': user.created_at
+        }
+        return JsonResponse(user_data)

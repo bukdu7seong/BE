@@ -1,11 +1,20 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.routers import DefaultRouter
 
 app_name = 'account'
 
+router = DefaultRouter()
+router.register(r'', views.MyLoginView, basename='account')
+
 urlpatterns = [
-    path('', views.name, name="index"),
-    path('token/', views.get_oauth_token, name="token"),
-    path('third_token/', views.login_42oauth, name=""),
-    path('signup/', views.signup, name="signup")
+    path('', include(router.urls)),
+    path('42oauth', views.get_42authorization, name="42oauth"),
+    path('signup', views.SignupView.as_view(), name="signup"),
+    path('jwt_token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('jwt_token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
+    path('test', views.TestView.as_view(), name="test"),
+    path('users/<int:userId>', views.UserProfileView.as_view(), name='user_profile')
+
 ]

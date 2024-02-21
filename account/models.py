@@ -41,10 +41,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name='username',
         max_length=20,
         unique=True)
-    intraId = models.CharField(
-        max_length=20,
-        blank=True,
-    )
     email = models.EmailField(
         verbose_name='email',
         max_length=30,

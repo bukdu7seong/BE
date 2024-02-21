@@ -4,27 +4,29 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import Friends
 from django.contrib.auth import get_user_model
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import JsonResponse
 
 AppUser = get_user_model()
 
-class FriendView(View):
-    def post(self, request, user_id=None):
-        logged_in_user_id = '1' # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
-        return self.add(request, logged_in_user_id)
+class FriendView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        return self.add(request)
 
     def get(self, request):
-        logged_in_user_id = '1' # 인증과정 구현 이후에 메소드를 호출하여 로그인한 사용자의 user_id를 가져옵니다.
-        
         if 'pending' in request.GET:
-            return self.pending_list(request, logged_in_user_id)
+            return self.pending_list(request)
         else:
-            return self.approved_list(request, logged_in_user_id)
+            return self.approved_list(request)
 
 
-    def add(self, request, logged_in_user_id):
+    def add(self, request):
         user_id = request.POST.get('user_id')
         try:
-            logged_in_user = AppUser.objects.get(user_id=logged_in_user_id)
+            logged_in_user = AppUser.objects.get(user_id=request.user_id)
             friend_user = AppUser.objects.get(user_id=user_id)
 
             if Friends.objects.filter(user1=logged_in_user, user2=friend_user).exists():
@@ -42,12 +44,12 @@ class FriendView(View):
         except AppUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
 
-    def approved_list(self, request, logged_in_user_id):
+    def approved_list(self, request):
         page_size = request.GET.get('pageSize', 10)
         page = request.GET.get('page', 1)
 
         try:
-            logged_in_user = AppUser.objects.get(user_id=logged_in_user_id)
+            logged_in_user = AppUser.objects.get(user_id=request.user_id)
             friends = Friends.objects.filter(
                 (Q(user1=logged_in_user) | Q(user2=logged_in_user)) & Q(status='ACCEPTED')
             )
@@ -69,12 +71,12 @@ class FriendView(View):
         except AppUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
 
-    def pending_list(self, request, logged_in_user_id):
+    def pending_list(self, request):
         page_size = request.GET.get('pageSize', 10)
         page = request.GET.get('page', 1)
 
         try:
-            logged_in_user = AppUser.objects.get(user_id=logged_in_user_id)
+            logged_in_user = AppUser.objects.get(user_id=request.user_id)
             friends = Friends.objects.filter(user2=logged_in_user, status='PENDING').order_by('id')
 
             paginator = Paginator(friends, page_size)
