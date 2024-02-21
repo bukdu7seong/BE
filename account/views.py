@@ -3,13 +3,13 @@ import json
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from .models import User
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializer import CustomTokenObtainPairSerializer, UserRegistrationSerializer
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from rest_framework.viewsets import ViewSet
+from .serializer import CustomTokenObtainPairSerializer, UserRegistrationSerializer
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
@@ -117,6 +117,7 @@ class SignupView(APIView):
         return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
 
 
+@permission_classes([IsAuthenticated])
 class TestView(APIView):
     def get(self, request, *args, **kwargs):
         return HttpResponse("ok")
