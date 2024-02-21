@@ -5,7 +5,7 @@ from django.contrib import admin
 
 urlpatterns = [
     path("admin/", admin.site.urls),  # url reverse
-    path('friend/', include('friend.urls')),
+    path('api/friend/', include('friend.urls')),
     path('api/games/', include('game.urls')),
     path('account/', include('account.urls')),
 ]
