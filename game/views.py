@@ -13,13 +13,13 @@ class GameResultView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        winner_username = request.data.get('winner')
-        loser_username = request.data.get('loser')
+        winner_email = request.data.get('winner')
+        loser_email = request.data.get('loser')
         game_mode = request.data.get('game_mode')
 
         try:
-            winner = AppUser.objects.get(username=winner_username)
-            loser = AppUser.objects.get(username=loser_username)
+            winner = AppUser.objects.get(email=winner_email)
+            loser = AppUser.objects.get(email=loser_email)
 
             if game_mode not in [choice[0] for choice in Game.GAME_MODE_CHOICES]:
                 return Response({"error": "Invalid game mode."}, status=status.HTTP_400_BAD_REQUEST)
