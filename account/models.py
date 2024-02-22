@@ -50,10 +50,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name='password',
         max_length=255,
     )
+
+    is_2fa = models.BooleanField(default=True)
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-
-    twoFactor = models.BooleanField(default=True)
 
     language = models.CharField(choices=LANGUAGE_CHOICES, max_length=4, default='KR')
 
@@ -72,3 +73,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = 'user'
+
+
+# class EmailVerification(models.Model):
+#     TYPE = {
+#         'LOGIN',
+#         'PASS',
+#     }
+#     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+#
+#     code = models.CharField(max_length=6)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     type = models.CharField(choices=TYPE, max_length=5, default='LOGIN')
+

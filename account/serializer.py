@@ -4,11 +4,15 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
-class CustomTokenObtainPairSerializer(serializers.Serializer):
+class UserSigninSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
     access = serializers.CharField(read_only=True)
     refresh = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'password')
 
     def validate(self, attrs):
         username = attrs.get('username')
@@ -29,7 +33,7 @@ def issue(user):
         'id': user.id,
     }
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
+class UserSignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
@@ -39,7 +43,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(
             email=validated_data['email'],
-            username=validated_data.get('username'),  # username은 선택적
+            username=validated_data.get('username'),
             password=validated_data['password']
         )
         return user

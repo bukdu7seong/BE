@@ -99,7 +99,7 @@ MIDDLEWARE = [
 ]
 
 # django-debug-toolbar
-INTERNAL_IPS=[
+INTERNAL_IPS = [
     '127.0.0.1',
 ]
 
@@ -190,9 +190,24 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 FT_OAUTH_CONFIG = {
-    'client_id' : env('FT_CLIENT_ID'),
-    'client_secret' : env('FT_CLIENT_SECRET'),
-    'redirect_uri' : env('FT_REDIRECT_URI'),
-    'auth_redirect_uri' : env('FT_AUTH_REDIRECT_URI'),
+    'client_id': env('FT_CLIENT_ID'),
+    'client_secret': env('FT_CLIENT_SECRET'),
+    'redirect_uri': env('FT_REDIRECT_URI'),
+    'auth_redirect_uri': env('FT_AUTH_REDIRECT_URI'),
+    'token_uri': 'https://api.intra.42.fr/oauth/token',
+    'user_info_uri': 'https://api.intra.42.fr/v2/me',
+    'authorization_uri': 'https://api.intra.42.fr/aouth/authorize'
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = "smtp.gmail.com"
+# 메일 host server
+EMAIL_PORT = 587
+# gmail과 통신 port
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+# 발신 이메일
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+# 앱 비밀번호
+EMAIL_USE_TLS = True
+# TLS 보완 방법
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
