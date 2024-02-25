@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
+
+User = get_user_model()
 
 
 class UserSigninSerializer(serializers.Serializer):
@@ -19,7 +20,7 @@ class UserSigninSerializer(serializers.Serializer):
         password = attrs.get('password')
         user = authenticate(username=username, password=password)
         if user is None:
-            raise serializers.ValidationError('Invalid credentials')
+            raise User.DoesNotExist("Not Found")
         return issue(user)
 
 
@@ -33,17 +34,17 @@ def issue(user):
         'id': user.id,
     }
 
-class UserSignupSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
 
+class UserSignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('email', 'username', 'password')
+        fields = ('username', 'email', 'password')
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         user = User.objects.create_user(
             email=validated_data['email'],
-            username=validated_data.get('username'),
+            username=validated_data['username'],
             password=validated_data['password']
         )
         return user

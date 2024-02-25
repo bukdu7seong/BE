@@ -70,6 +70,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'EXCEPTION_HANDLER': 'ts.utils.custom_exception_handler',
 }
 
 SIMPLE_JWT = {
@@ -87,6 +88,7 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'ts.middleware.CustomExceptionHandlerMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # 추가
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
