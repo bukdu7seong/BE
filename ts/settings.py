@@ -198,7 +198,7 @@ FT_OAUTH_CONFIG = {
     'auth_redirect_uri': env('FT_AUTH_REDIRECT_URI'),
     'token_uri': 'https://api.intra.42.fr/oauth/token',
     'user_info_uri': 'https://api.intra.42.fr/v2/me',
-    'authorization_uri': 'https://api.intra.42.fr/aouth/authorize'
+    'authorization_uri': 'https://api.intra.42.fr/oauth/authorize'
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

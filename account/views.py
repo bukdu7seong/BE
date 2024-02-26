@@ -28,15 +28,15 @@ class FtAuthView(APIView):
     def get(self, request):
         redirect_uri = (f"{settings.FT_OAUTH_CONFIG['authorization_uri']}"
                         f"?client_id={settings.FT_OAUTH_CONFIG['client_id']}"
-                        f"&redirect_uri={settings.FT_OAUTH_CONFIG['redirect_uri']}"
-                        f"&response-type=code")
+                        f"&redirect_uri=http://127.0.0.1:4242/profile"
+                        f"&response_type=code")
+        print(redirect_uri)
         return HttpResponse(json.dumps({'url': redirect_uri}), status=status.HTTP_200_OK)
-
 
 # Login View
 @permission_classes([AllowAny])
 class MyLoginView(ViewSet):
-    @action(detail=False, methods=['post'], url_path='login')
+    @action(detail=False, methods=['post'], url_path='signin')
     def login_account(self, request):
         username = request.data.get('username')
         user = User.objects.get(username=username)
