@@ -25,6 +25,7 @@ class UserManager(BaseUserManager):
             password=password,
         )
         superuser.is_staff = True
+        superuser.is_superuser = True
         superuser.save(using=self._db)
         return superuser
 
