@@ -1,11 +1,15 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
+from rest_framework.routers import DefaultRouter
 
 app_name = 'account'
 
+router = DefaultRouter()
+router.register(r'', views.MyLoginView, basename='account')
+
 urlpatterns = [
-    path('', views.name, name="index"),
-    path('token/', views.get_oauth_token, name="token"),
-    path('third_token/', views.login_42oauth, name=""),
-    path('signup/', views.signup, name="signup")
+    path('', include(router.urls)),
+    path('42oauth', views.FtAuthView.as_view(), name="42oauth"),
+    path('signup', views.SignupView.as_view(), name="signup"),
+    path('test', views.TestView.as_view(), name="test"),
 ]

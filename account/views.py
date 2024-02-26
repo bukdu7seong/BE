@@ -1,99 +1,161 @@
 import json
+import random
+import string
+from datetime import timedelta, timezone, datetime
 
-from django.shortcuts import render, redirect
-from django.http import HttpResponse, HttpRequest
-from .models import User
+import pytz
 import requests
-from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.core.mail import EmailMessage
+from django.http import HttpResponse
+from rest_framework import status
+from rest_framework.decorators import action, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
+from rest_framework.views import APIView
+from rest_framework.viewsets import ViewSet
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from .models import User, EmailVerification
+from .serializer import UserSigninSerializer, UserSignupSerializer
+from ts import exceptions
 
 
-# Create your views here.
+# redirect to 42oauth page
+@permission_classes([AllowAny])
+class FtAuthView(APIView):
+    def get(self, request):
+        redirect_uri = (f"{settings.FT_OAUTH_CONFIG['authorization_uri']}"
+                        f"?client_id={settings.FT_OAUTH_CONFIG['client_id']}"
+                        f"&redirect_uri=http://127.0.0.1:4242/profile"
+                        f"&response_type=code")
+        print(redirect_uri)
+        return HttpResponse(json.dumps({'url': redirect_uri}), status=status.HTTP_200_OK)
 
-def check_signup(user_info):
-    return False
-
-
-def get_42_access_token(code):
-    data = {
-        "grant_type": "authorization_code",
-        "client_id": "u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944",
-        "client_secret": "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",
-        "code": code,
-        "redirect_uri": "http://127.0.0.1:8000/account",
-    }
-    try:
-        return requests.post("https://api.intra.42.fr/oauth/token", data=data)
-    except requests.exceptions.RequestException as e:
-        return HttpResponse(str(e), status=500)
-
-
-def get_42_user_info(response):
-    js = response.json();
-    ts = js.get('access_token')
-    user_info = requests.get('https://api.intra.42.fr/v2/me', headers={'Authorization': 'Bearer ' + ts})
-    if user_info.status_code == 200:
-        return user_info.json()['email']
-    else:
-        return None
-
-
-def login_42oauth(request):
-    code = request.GET.get('code', None)
-    if code is not None:
-        response = get_42_access_token(code)
-        if response.status_code == 200:
-            email = get_42_user_info(response)
+# Login View
+@permission_classes([AllowAny])
+class MyLoginView(ViewSet):
+    @action(detail=False, methods=['post'], url_path='signin')
+    def login_account(self, request):
+        username = request.data.get('username')
+        user = User.objects.get(username=username)
+        serializer = UserSigninSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if user.is_2fa:
+            code = EmailService.send_verification_email(user.email)
             try:
+                verification = user.emailverification
+                verification.code = code
+                verification.type = 'LOGIN'
+                verification.save()
+            except EmailVerification.DoesNotExist:
+                verification = EmailVerification(user=user, code=code)
+                verification.save()
+            return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
+        return self._get_user_token(request)
+
+    @action(detail=False, methods=['post'], url_path='2fa')
+    def verify_email(self, request):
+        code = request.data.get('code')
+        email = request.data.get('email')
+        user = User.objects.get(email=email)
+        if user.emailverification.code == code:
+            if datetime.now(pytz.UTC) - user.emailverification.updated_at > timedelta(seconds=5):
+                raise exceptions.TwoFactorException("code is expired", status.HTTP_400_BAD_REQUEST)
+            user.emailverification.delete()
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            })
+        else:
+            raise ValidationError("Invalid code")
+
+    @action(detail=False, methods=['post'], url_path='42code')
+    def ft_login(self, request):
+        code = request.query_params.get('code', None)
+        if code is not None:
+            response = self._get_42_access_token(code)
+            if response.status_code == 200:
+                email = self._get_42_email(response)
                 user = User.objects.get(email=email)
-                return HttpResponse('http://localhost:8000/account/', status=200)
-            except User.DoesNotExist:
-                return HttpResponse('have to redirect to sign up', status=404)
+                if user.is_2fa:
+                    EmailService.send_verification_email(user.email)
+                    return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
+                request.data['email'] = email
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                })
+            else:
+                raise exceptions.FTOauthException('fail to get 42 access token', status=status.HTTP_400_BAD_REQUEST)
         else:
-            return HttpResponse('fail to get 42 access token', status=400)
-    else:
-        return HttpResponse('fail to get code', status=400)
+            raise ValueError('fail to get code')
 
-
-def create(request):
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        content = request.POST.get('content')
-        user = User(title=title, content=content)
-        user.save()
-        return redirect('articles:index')
-    else:
-        return render(request, 'articles/create.html')
-
-
-def get_oauth_token(request):
-    url = "https://api.intra.42.fr/oauth/token"
-    data = {
-        "grant_type": "client_credentials",
-        "client_id": "u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944",
-        "client_secret": "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",
-        "scope": "public"
-    }
-    try:
-        response = requests.post(url, data=data)
-        if response.status_code == 200:
-            return redirect(
-                "https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-33518bf1e037b1706036053f6530503148e5995f22e2a5dca937497ee382c944&redirect_uri=http%3A%2F%2F127.0.0.1%3A8000%2Faccount&response_type=code")
+    @classmethod
+    def _get_42_email(cls, response):
+        js = response.json()
+        token = js.get('access_token')
+        user_info = requests.get(settings.FT_OAUTH_CONFIG['user_info_uri'], headers={'Authorization': 'Bearer ' + token})
+        if user_info.status_code == 200:
+            return user_info.json()['email']
         else:
-            return HttpResponse(response.content, status=response.status_code)
-    except requests.exceptions.RequestException as e:
-        return HttpResponse(str(e), status=50)
+            return None
+
+    @classmethod
+    def _get_42_access_token(cls, code):
+        data = {
+            "grant_type": "authorization_code",
+            "client_id": settings.FT_OAUTH_CONFIG['client_id'],
+            "client_secret": settings.FT_OAUTH_CONFIG['client_secret'],
+            "code": code,
+            "redirect_uri": settings.FT_OAUTH_CONFIG['auth_redirect_uri'],
+        }
+        return requests.post(settings.FT_OAUTH_CONFIG['token_uri'], data=data)
+
+    @classmethod
+    def _get_user_token(cls, request):
+        serializer = UserSigninSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        else:
+            raise ValidationError("Invalid request")
 
 
-def name(request):
-    return HttpResponse("Hello, world. You're at the", status=200)
+class EmailService:
+    @classmethod
+    def get_verification_code(cls):
+        random_value = string.ascii_letters + string.digits
+        random_value = list(random_value)
+        random.shuffle(random_value)
+        code = "".join(random_value[:6])
+        return code
+
+    @classmethod
+    def send_verification_email(cls, email):
+        code = cls.get_verification_code()
+        content = "다음 코드를 인증창에 입력해주세요.\n" + code
+        to = [email]
+        mail = EmailMessage("Verification code for TS", content, to=to)
+        mail.send()
+        return code
 
 
-def signup(request):
-    data = json.loads(request.body)
-    user = User.objects.create_user(
-        username=data.get('username'),
-        email=data.get('email'),
-        password=data.get('password'),
-    )
-    user.save()
-    return HttpResponse("ok")
+# SignUp View
+@permission_classes([AllowAny])
+class SignupView(APIView):
+    def post(self, request):
+        serializer = UserSignupSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            raise ValidationError('invalid input')
+
+
+@permission_classes([IsAuthenticated])
+class TestView(APIView):
+    def get(self, request, *args, **kwargs):
+        return HttpResponse("ok")
