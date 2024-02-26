@@ -28,10 +28,11 @@ class FtAuthView(APIView):
     def get(self, request):
         redirect_uri = (f"{settings.FT_OAUTH_CONFIG['authorization_uri']}"
                         f"?client_id={settings.FT_OAUTH_CONFIG['client_id']}"
-                        f"&redirect_uri=http://127.0.0.1:4242/profile"
+                        f"&redirect_uri={settings.FT_OAUTH_CONFIG['redirect_uri']}"
                         f"&response_type=code")
         print(redirect_uri)
         return HttpResponse(json.dumps({'url': redirect_uri}), status=status.HTTP_200_OK)
+
 
 # Login View
 @permission_classes([AllowAny])
@@ -77,6 +78,7 @@ class MyLoginView(ViewSet):
         code = request.query_params.get('code', None)
         if code is not None:
             response = self._get_42_access_token(code)
+            print(response.content)
             if response.status_code == 200:
                 email = self._get_42_email(response)
                 user = User.objects.get(email=email)
@@ -98,7 +100,8 @@ class MyLoginView(ViewSet):
     def _get_42_email(cls, response):
         js = response.json()
         token = js.get('access_token')
-        user_info = requests.get(settings.FT_OAUTH_CONFIG['user_info_uri'], headers={'Authorization': 'Bearer ' + token})
+        user_info = requests.get(settings.FT_OAUTH_CONFIG['user_info_uri'],
+                                 headers={'Authorization': 'Bearer ' + token})
         if user_info.status_code == 200:
             return user_info.json()['email']
         else:
@@ -111,7 +114,7 @@ class MyLoginView(ViewSet):
             "client_id": settings.FT_OAUTH_CONFIG['client_id'],
             "client_secret": settings.FT_OAUTH_CONFIG['client_secret'],
             "code": code,
-            "redirect_uri": settings.FT_OAUTH_CONFIG['auth_redirect_uri'],
+            "redirect_uri": settings.FT_OAUTH_CONFIG['redirect_uri'],
         }
         return requests.post(settings.FT_OAUTH_CONFIG['token_uri'], data=data)
 
@@ -142,14 +145,30 @@ class EmailService:
         mail.send()
         return code
 
+
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
+
 
 # SignUp View
 @permission_classes([AllowAny])
 class SignupView(APIView):
     def post(self, request):
         serializer = UserSignupSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            raise ValidationError('invalid input')
+
+    def get(self, request):
+        code = request.data.get('code')
+        response = MyLoginView._get_42_access_token(code)
+        if (response.status_code != 200):
+            raise exceptions.FTOauthException('토큰 발급에 실패 하였습니다.')
+        email = MyLoginView._get_42_email(response)
+        request.data['email'] = email
+        serializer = UserSigninSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
