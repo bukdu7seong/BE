@@ -142,6 +142,8 @@ class EmailService:
         mail.send()
         return code
 
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
 
 # SignUp View
 @permission_classes([AllowAny])

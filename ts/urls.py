@@ -5,8 +5,9 @@ from django.contrib import admin
 
 urlpatterns = [
     path("admin/", admin.site.urls),  # url reverse
-    path('friend/', include('friend.urls')),
     path('api/account/', include('account.urls')),
+    path('api/friend/', include('friend.urls')),
+    path('api/games/', include('game.urls')),
 ]
 
 if settings.DEBUG:
