@@ -33,5 +33,11 @@ jobs:
         POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
         POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+        FT_CLIENT_ID: ${{ secrets.FT_CLIENT_ID }}
+        FT_CLIENT_SECRET: ${{ secrets.FT_CLIENT_SECRET }}
+        FT_REDIRECT_URI: ${{ secrets.FT_CLIENT_URI }}
+        FT_AUTH_REDIRECT_URI: ${{ secrets.FT_AUTH_REDIRECT_URI }}
+        EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+        EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
       run: |
         python manage.py test
