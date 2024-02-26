@@ -13,30 +13,30 @@ class GameResultView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        winner_email = request.data.get('winner')
-        loser_email = request.data.get('loser')
+        player1 = request.data.get('player1')
+        winner = request.data.get('winner')
+        loser = request.data.get('loser')
         game_mode = request.data.get('game_mode')
 
         try:
-            winner = AppUser.objects.get(email=winner_email)
-            loser = AppUser.objects.get(email=loser_email)
-
+            if winner is None and loser is None:
+                return Response({"error": "Winner and loser are required."}, status=status.HTTP_400_BAD_REQUEST)
             if game_mode not in [choice[0] for choice in Game.GAME_MODE_CHOICES]:
                 return Response({"error": "Invalid game mode."}, status=status.HTTP_400_BAD_REQUEST)
 
             game = Game.objects.create(
+                player1=player1,
+                player2=None,
                 winner=winner,
                 loser=loser,
                 game_mode=game_mode
             )
             game.save()
-
-            return Response({"message": "Game result saved successfully."}, status=status.HTTP_201_CREATED)
-        except AppUser.DoesNotExist:
-            return Response({"error": "One of the players does not exist."}, status=status.HTTP_404_NOT_FOUND)
+            game_id = game.id
+            return Response({"message": "Game created successfully", "gameId": game_id}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+        
 class GameHistoryView(APIView, PageNumberPagination):
     permission_classes = [IsAuthenticated]
     page_size = 5  # 페이지 당 항목 수를 설정합니다. 필요에 따라 조정하세요.
