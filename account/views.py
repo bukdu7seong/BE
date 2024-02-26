@@ -8,6 +8,7 @@ import requests
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.http import HttpResponse
+from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -30,13 +31,13 @@ class FtAuthView(APIView):
                         f"?client_id={settings.FT_OAUTH_CONFIG['client_id']}"
                         f"&redirect_uri={settings.FT_OAUTH_CONFIG['redirect_uri']}"
                         f"&response_type=code")
-        print(redirect_uri)
         return HttpResponse(json.dumps({'url': redirect_uri}), status=status.HTTP_200_OK)
 
 
 # Login View
 @permission_classes([AllowAny])
 class MyLoginView(ViewSet):
+    @transaction.atomic
     @action(detail=False, methods=['post'], url_path='signin')
     def login_account(self, request):
         username = request.data.get('username')
@@ -56,6 +57,7 @@ class MyLoginView(ViewSet):
             return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
         return self._get_user_token(request)
 
+    @transaction.atomic
     @action(detail=False, methods=['post'], url_path='2fa')
     def verify_email(self, request):
         code = request.data.get('code')
@@ -73,6 +75,7 @@ class MyLoginView(ViewSet):
         else:
             raise ValidationError("Invalid code")
 
+    @transaction.atomic
     @action(detail=False, methods=['post'], url_path='42code')
     def ft_login(self, request):
         code = request.query_params.get('code', None)
@@ -95,6 +98,22 @@ class MyLoginView(ViewSet):
                 raise exceptions.FTOauthException('fail to get 42 access token', status=status.HTTP_400_BAD_REQUEST)
         else:
             raise ValueError('fail to get code')
+
+    @transaction.atomic
+    @action(detail=False, methods=['post'], url_path='signup')
+    def signup(self, request):
+        code = request.data.get('code')
+        response = self._get_42_access_token(code)
+        if response.status_code != 200:
+            raise exceptions.FTOauthException('토큰 발급에 실패 하였습니다.')
+        email = self._get_42_email(response)
+        request.data['email'] = email
+        serializer = UserSignupSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            raise ValidationError('invalid input')
 
     @classmethod
     def _get_42_email(cls, response):
@@ -153,6 +172,7 @@ class UserProfileView(APIView):
 # SignUp View
 @permission_classes([AllowAny])
 class SignupView(APIView):
+    @transaction.atomic
     def post(self, request):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
@@ -160,21 +180,6 @@ class SignupView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             raise ValidationError('invalid input')
-
-    def get(self, request):
-        code = request.data.get('code')
-        response = MyLoginView._get_42_access_token(code)
-        if (response.status_code != 200):
-            raise exceptions.FTOauthException('토큰 발급에 실패 하였습니다.')
-        email = MyLoginView._get_42_email(response)
-        request.data['email'] = email
-        serializer = UserSigninSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            raise ValidationError('invalid input')
-
 
 @permission_classes([IsAuthenticated])
 class TestView(APIView):
