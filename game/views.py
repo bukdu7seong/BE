@@ -82,11 +82,11 @@ class GameHistoryView(APIView, PageNumberPagination):
         result_page = self.paginate_queryset(games, request, view=self)
         if result_page is not None:
             games_data = [{
-                "id": game.id,
+                "id": game.game_id,
                 "player1": game.player1.username,
                 "player2": game.player2.username,
-                "winner": game.winner,
-                "loser": game.loser,
+                "winner": game.winner.username,
+                "loser": game.loser.username,
                 "game_mode": game.game_mode,
                 "played_at": game.played_at.strftime('%Y-%m-%d %H:%M:%S')  # 날짜 형식을 문자열로 변환
             } for game in result_page]
