@@ -26,3 +26,16 @@ class AlreadyFriendsOrRequested(Exception):
         self.message = message
         super().__init__(self.message)
         self.status = status or 400
+
+# game
+class InvalidGameModeException(Exception):
+    def __init__(self, message="Invalid game mode.", status=None):
+        self.message = message
+        super().__init__(self.message)
+        self.status = status or 400
+
+class PlayerNotMatchedException(Exception):
+    def __init__(self, message="Player1 is not matched.", status=None):
+        self.message = message
+        super().__init__(self.message)
+        self.status = status or 400
