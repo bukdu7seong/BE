@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from .models import Friends, FriendStatus
 from django.core.paginator import Paginator
 from django.db.models import Q
+from ts.exceptions import SelfRequestException, AlreadyFriendsOrRequested
 
 AppUser = get_user_model()
 
@@ -18,17 +19,19 @@ class FriendRequestView(APIView):
                 return JsonResponse({'error': 'User ID is required'}, status=400)
 
             if request.user.id == user_id:
-                return JsonResponse({'error': 'You cannot send a friend request to yourself'}, status=400)
+                raise SelfRequestException()
 
             friend_user = AppUser.objects.get(id=user_id)
             if Friends.objects.filter(user1=request.user, user2=friend_user).exists() or Friends.objects.filter(user1=friend_user, user2=request.user).exists():
-                return JsonResponse({'error': 'Friend request already sent or you are already friends'}, status=400)
+                raise AlreadyFriendsOrRequested()
 
             Friends.objects.create(user1=request.user, user2=friend_user, status=FriendStatus.PENDING)
             return JsonResponse({'message': 'Friend request sent successfully'})
 
         except AppUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
+        except (SelfRequestException, AlreadyFriendsOrRequested) as e:
+            return JsonResponse({'error': e.message}, status=e.status)
 
 class FriendPendingListView(APIView):
     permission_classes = [IsAuthenticated]
