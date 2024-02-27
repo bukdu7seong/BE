@@ -37,6 +37,12 @@ class FtAuthView(APIView):
 # Login View
 @permission_classes([AllowAny])
 class MyLoginView(ViewSet):
+
+    @action(methods=['post'], detail=False, url_path='devlogin')
+    def login_dev(self, request):
+        return self._get_user_token(request)
+
+
     @transaction.atomic
     @action(detail=False, methods=['post'], url_path='signin')
     def login_account(self, request):
