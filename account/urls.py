@@ -10,6 +10,8 @@ router.register(r'', views.MyLoginView, basename='account')
 urlpatterns = [
     path('', include(router.urls)),
     path('42oauth', views.FtAuthView.as_view(), name="42oauth"),
-    path('signup', views.SignupView.as_view(), name="signup"),
+
+    #테스트용
+    path('devsignup', views.SignupView.as_view(), name="devsignup"),
     path('test', views.TestView.as_view(), name="test"),
 ]

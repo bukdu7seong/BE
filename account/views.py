@@ -8,6 +8,7 @@ import requests
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.http import HttpResponse
+from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -28,14 +29,15 @@ class FtAuthView(APIView):
     def get(self, request):
         redirect_uri = (f"{settings.FT_OAUTH_CONFIG['authorization_uri']}"
                         f"?client_id={settings.FT_OAUTH_CONFIG['client_id']}"
-                        f"&redirect_uri=http://127.0.0.1:4242/profile"
+                        f"&redirect_uri={settings.FT_OAUTH_CONFIG['redirect_uri']}"
                         f"&response_type=code")
-        print(redirect_uri)
         return HttpResponse(json.dumps({'url': redirect_uri}), status=status.HTTP_200_OK)
+
 
 # Login View
 @permission_classes([AllowAny])
 class MyLoginView(ViewSet):
+    @transaction.atomic
     @action(detail=False, methods=['post'], url_path='signin')
     def login_account(self, request):
         username = request.data.get('username')
@@ -55,6 +57,7 @@ class MyLoginView(ViewSet):
             return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
         return self._get_user_token(request)
 
+    @transaction.atomic
     @action(detail=False, methods=['post'], url_path='2fa')
     def verify_email(self, request):
         code = request.data.get('code')
@@ -72,11 +75,13 @@ class MyLoginView(ViewSet):
         else:
             raise ValidationError("Invalid code")
 
+    @transaction.atomic
     @action(detail=False, methods=['post'], url_path='42code')
     def ft_login(self, request):
         code = request.query_params.get('code', None)
         if code is not None:
             response = self._get_42_access_token(code)
+            print(response.content)
             if response.status_code == 200:
                 email = self._get_42_email(response)
                 user = User.objects.get(email=email)
@@ -94,11 +99,28 @@ class MyLoginView(ViewSet):
         else:
             raise ValueError('fail to get code')
 
+    @transaction.atomic
+    @action(detail=False, methods=['post'], url_path='signup')
+    def signup(self, request):
+        code = request.data.get('code')
+        response = self._get_42_access_token(code)
+        if response.status_code != 200:
+            raise exceptions.FTOauthException('토큰 발급에 실패 하였습니다.')
+        email = self._get_42_email(response)
+        request.data['email'] = email
+        serializer = UserSignupSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            raise ValidationError('invalid input')
+
     @classmethod
     def _get_42_email(cls, response):
         js = response.json()
         token = js.get('access_token')
-        user_info = requests.get(settings.FT_OAUTH_CONFIG['user_info_uri'], headers={'Authorization': 'Bearer ' + token})
+        user_info = requests.get(settings.FT_OAUTH_CONFIG['user_info_uri'],
+                                 headers={'Authorization': 'Bearer ' + token})
         if user_info.status_code == 200:
             return user_info.json()['email']
         else:
@@ -111,7 +133,7 @@ class MyLoginView(ViewSet):
             "client_id": settings.FT_OAUTH_CONFIG['client_id'],
             "client_secret": settings.FT_OAUTH_CONFIG['client_secret'],
             "code": code,
-            "redirect_uri": settings.FT_OAUTH_CONFIG['auth_redirect_uri'],
+            "redirect_uri": settings.FT_OAUTH_CONFIG['redirect_uri'],
         }
         return requests.post(settings.FT_OAUTH_CONFIG['token_uri'], data=data)
 
@@ -142,12 +164,15 @@ class EmailService:
         mail.send()
         return code
 
+
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
+
 
 # SignUp View
 @permission_classes([AllowAny])
 class SignupView(APIView):
+    @transaction.atomic
     def post(self, request):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
@@ -155,7 +180,6 @@ class SignupView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             raise ValidationError('invalid input')
-
 
 @permission_classes([IsAuthenticated])
 class TestView(APIView):
