@@ -1,158 +1,141 @@
-from django.views import View
 from django.http import JsonResponse
-from django.core.paginator import Paginator
-from django.db.models import Q
-from .models import Friends
-from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from .models import Friends, FriendStatus
+from django.core.paginator import Paginator
+from django.db.models import Q
 
 AppUser = get_user_model()
-from rest_framework.pagination import PageNumberPagination
 
-class FriendPagination(PageNumberPagination):
-    page_size = 5  # 페이지 당 항목 수를 설정합니다. 필요에 따라 조정하세요.
-    page_size_query_param = 'pageSize'
-    max_page_size = 100
-
-class FriendView(APIView):
+class FriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        return self.add(request)
+        try:
+            user_id = request.data.get('user_id')
+            if user_id is None:
+                return JsonResponse({'error': 'User ID is required'}, status=400)
+
+            if request.user.id == user_id:
+                return JsonResponse({'error': 'You cannot send a friend request to yourself'}, status=400)
+
+            friend_user = AppUser.objects.get(id=user_id)
+            if Friends.objects.filter(user1=request.user, user2=friend_user).exists() or Friends.objects.filter(user1=friend_user, user2=request.user).exists():
+                return JsonResponse({'error': 'Friend request already sent or you are already friends'}, status=400)
+
+            Friends.objects.create(user1=request.user, user2=friend_user, status=FriendStatus.PENDING)
+            return JsonResponse({'message': 'Friend request sent successfully'})
+
+        except AppUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+class FriendPendingListView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        if 'pending' in request.GET:
-            print("pending")
-            return self.pending_list(request)
-        else:
-            print("approved")
-            return self.approved_list(request)
-
-
-    def add(self, request):
-        user_id = request.POST.get('user_id')
-        print(request.user.id)
-        print(user_id)
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('pageSize', 10)
         try:
-            logged_in_user = AppUser.objects.get(id=request.user.id)  # 수정됨
-            friend_user = AppUser.objects.get(id=user_id)  # 수정됨
+            page = int(page)
+            page_size = int(page_size)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid page or pageSize'}, status=400)
 
-            if Friends.objects.filter(user1=logged_in_user, user2=friend_user).exists():
-                return JsonResponse({'error': 'Friend request already exists'}, status=400)
+        pending_friends = Friends.objects.filter(user2=request.user, status=FriendStatus.PENDING).order_by('id')
+        paginator = Paginator(pending_friends, page_size)
 
-            new_friend = Friends.objects.create(
-                user1=logged_in_user,
-                user2=friend_user,
-                status='PENDING'
+        try:
+            friends_page = paginator.page(page)
+        except:
+            return JsonResponse({'error': 'Page not found'}, status=404)
+
+        pending_list = [{'id': friend.user1.id, 'username': friend.user1.username, 'email': friend.user1.email} for friend in friends_page]
+
+        return JsonResponse({
+            'page': page,
+            'pageSize': page_size,
+            'total': paginator.count,
+            'totalPages': paginator.num_pages,
+            'friends': pending_list
+        })
+
+class AcceptFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        friend_request_id = request.data.get('friend_request_id')
+        if not friend_request_id:
+            return JsonResponse({'error': 'Friend request ID is required'}, status=400)
+
+        try:
+            friend_request = Friends.objects.get(
+                Q(user1=request.user, id=friend_request_id) | Q(user2=request.user, id=friend_request_id),
+                status=FriendStatus.PENDING
             )
+        except Friends.DoesNotExist:
+            return JsonResponse({'error': 'Friend request not found or already accepted'}, status=404)
 
-            new_friend.save()
-            return JsonResponse({'message': 'Friend request sent'})
+        friend_request.status = FriendStatus.ACCEPTED
+        friend_request.save()
 
-        except AppUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+        return JsonResponse({'message': 'Friend request accepted successfully'})
+    
+class FriendAcceptedList(APIView):
+    permission_classes = [IsAuthenticated]
 
-    def friends_to_json(self, friends, logged_in_user):
-        friend_list = []
-        for friend in friends:
-            friend_info = friend.user2 if friend.user1 == logged_in_user else friend.user1
-            image_url = friend_info.image.url if friend_info.image else None
-            friend_list.append({
-                'user_id': friend_info.id,
-                'username': friend_info.username,
-                'image': image_url
+    def get(self, request):
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('pageSize', 10)
+        try:
+            page = int(page)
+            page_size = int(page_size)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid page or pageSize'}, status=400)
+
+        accepted_friends = Friends.objects.filter(
+            Q(user1=request.user, status=FriendStatus.ACCEPTED) | 
+            Q(user2=request.user, status=FriendStatus.ACCEPTED)
+        ).distinct().order_by('id')
+
+        paginator = Paginator(accepted_friends, page_size)
+
+        try:
+            friends_page = paginator.page(page)
+        except:
+            return JsonResponse({'error': 'Page not found'}, status=404)
+
+        accepted_list = []
+        for friend in friends_page:
+            friend_user = friend.user2 if friend.user1 == request.user else friend.user1
+            accepted_list.append({
+                'id': friend_user.id, 
+                'username': friend_user.username, 
+                'email': friend_user.email
             })
-        return friend_list
 
-    def approved_list(self, request):
-        page_size = request.GET.get('pageSize', 10)
-        page = request.GET.get('page', 1)
+        return JsonResponse({
+            'page': page,
+            'pageSize': page_size,
+            'total': paginator.count,
+            'totalPages': paginator.num_pages,
+            'friends': accepted_list
+        })
+    
+class DeleteFriendRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        friend_request_id = request.query_params.get('friend_request_id')
+        if not friend_request_id:
+            return JsonResponse({'error': 'Friend request ID is required'}, status=400)
 
         try:
-            logged_in_user = AppUser.objects.get(id=request.user.id)
-            friends = Friends.objects.filter(
-                (Q(user1=logged_in_user) | Q(user2=logged_in_user)) & Q(status='ACCEPTED')
+            friend_request = Friends.objects.get(
+                Q(user1=request.user, id=friend_request_id, status=FriendStatus.PENDING) |
+                Q(user2=request.user, id=friend_request_id, status=FriendStatus.PENDING)
             )
-
-            paginator = Paginator(friends, page_size)
-            friends_page = paginator.get_page(page)
-
-            friend_list = []
-            for friend in friends_page:
-                friend_info = friend.user2 if friend.user1 == logged_in_user else friend.user1
-                image_url = friend_info.image.url if friend_info.image else None  # 이미지가 있으면 URL을 가져오고, 없으면 None
-                friend_list.append({
-                    'user_id': friend_info.id,
-                    'username': friend_info.username,
-                    'image': image_url
-                })
-
-            return JsonResponse({'friends': friend_list})
-
-        except AppUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-
-    def pending_list(self, request):
-        page_size = request.GET.get('pageSize', 10)
-        page = request.GET.get('page', 1)
-
-        try:
-            logged_in_user = AppUser.objects.get(id=request.user.id)
-            friends = Friends.objects.filter(user2=logged_in_user, status='PENDING').order_by('id')
-
-            paginator = Paginator(friends, page_size)
-            friends_page = paginator.get_page(page)
-
-            friend_list = []
-            for friend in friends_page:
-                friend_info = friend.user2 if friend.user1 == logged_in_user else friend.user1
-                image_url = friend_info.image.url if friend_info.image else None  # 이미지가 있으면 URL을 가져오고, 없으면 None
-                friend_list.append({
-                    'user_id': friend_info.id,
-                    'username': friend_info.username,
-                    'image': image_url
-                })
-            return JsonResponse({'friends': friend_list})
-
-        except AppUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-
-
-class DenyFriendView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, user_id):
-        try:
-            logged_in_user = AppUser.objects.get(id=request.user.id)
-            friend_user = AppUser.objects.get(id=user_id)
-
-            friend_request = Friends.objects.get(user1=friend_user, user2=logged_in_user, status='PENDING')
             friend_request.delete()
-
-            return JsonResponse({'message': 'Friend request denied'})
-
-        except AppUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+            return JsonResponse({'message': 'Friend request deleted successfully'})
         except Friends.DoesNotExist:
-            return JsonResponse({'error': 'Friend request not found'}, status=404)
-
-class ApproveFriendView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, user_id):
-        try:
-            logged_in_user = AppUser.objects.get(id=request.user.id)
-            friend_user = AppUser.objects.get(id=user_id)
-            print("login user : ", logged_in_user)
-            print("friend user : ", friend_user)
-            friend_request = Friends.objects.get(user1=friend_user, user2=logged_in_user, status='PENDING')
-            friend_request.status = 'APPROVED'
-            friend_request.save()
-
-            return JsonResponse({'message': 'Friend request approved'})
-
-        except AppUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-        except Friends.DoesNotExist:
-            return JsonResponse({'error': 'Friend request not found'}, status=404)
+            return JsonResponse({'error': 'Friend request not found or not in pending status'}, status=404)
