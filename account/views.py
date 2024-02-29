@@ -11,7 +11,7 @@ from django.core.mail import EmailMessage
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from rest_framework import generics, status
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -427,6 +427,28 @@ class UpdateUser2FAView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class UpdateUserLanguageView(APIView):
+    """
+    UpdateUserLanguageView는 사용자의 선호하는 언어 설정을 업데이트하는 API 엔드포인트를 제공합니다.
+    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+
+    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 자신의 언어 설정을 업데이트할 수 있습니다.
+
+    PATCH 요청:
+    이 뷰는 PATCH 요청을 처리하여 사용자의 언어 설정을 업데이트합니다.
+    - 사용자는 request.user를 통해 인증된 사용자 객체를 얻습니다.
+    - request.data에서 'language' 키를 통해 전달받은 새로운 언어 설정 값을 사용자 객체에 저장합니다.
+    - 언어 설정 업데이트가 성공적으로 이루어지면, 업데이트된 언어 설정 정보를 포함한 응답을 반환합니다.
+    - 언어 설정 업데이트 과정에서 오류가 발생한 경우, 해당 에러 메시지를 응답으로 반환합니다.
+
+    이 클래스 뷰는 'update-language/' URL 패턴에 연결되어 있으며, 해당 URL로 PATCH 요청이 들어오면 인증된 사용자의 언어 설정을 업데이트하는 처리를 수행합니다.
+
+    주요 처리 과정:
+    1. 인증된 사용자 객체를 request.user를 통해 얻습니다.
+    2. request.data를 사용하여 UserLanguageUpdateSerializer를 통해 언어 설정 데이터를 검증합니다.
+    3. 검증이 성공하면, 사용자 객체의 언어 설정을 업데이트하고 데이터베이스에 저장합니다.
+    4. 언어 설정 업데이트가 성공적으로 이루어지면, 업데이트된 언어 설정 정보를 포함한 응답을 클라이언트에게 반환합니다.
+    5. 언어 설정 업데이트 과정에서 오류가 발생한 경우, 적절한 에러 메시지를 응답으로 반환합니다.
+    """
     permission_classes = [IsAuthenticated]
 
     @transaction.atomic
