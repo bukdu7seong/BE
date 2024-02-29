@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from .models import Game
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from django.db import transaction
 from django.db.models import Q
 from ts.exceptions import InvalidGameModeException, PlayerNotMatchedException
 
@@ -13,6 +14,7 @@ AppUser = get_user_model()
 class GameResultView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         player1 = request.user
         winner_email = request.data.get('winner')
@@ -40,7 +42,8 @@ class GameResultView(APIView):
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
+
+    @transaction.atomic
     def patch(self, request, **kwargs):
         game_id = kwargs.get('game_id')
         player1 = request.user

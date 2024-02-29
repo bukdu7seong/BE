@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from .models import Friends, FriendStatus
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from ts.exceptions import SelfRequestException, AlreadyFriendsOrRequested
 
@@ -12,6 +13,7 @@ AppUser = get_user_model()
 class FriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         try:
             user_id = request.data.get('user_id')
@@ -66,6 +68,7 @@ class FriendPendingListView(APIView):
 class AcceptFriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         friend_request_id = request.data.get('friend_request_id')
         if not friend_request_id:
@@ -128,6 +131,7 @@ class FriendAcceptedList(APIView):
 class DeleteFriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def delete(self, request):
         friend_request_id = request.query_params.get('friend_request_id')
         if not friend_request_id:

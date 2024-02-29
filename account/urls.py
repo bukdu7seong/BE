@@ -14,5 +14,12 @@ urlpatterns = [
     #테스트용
     path('devsignup', views.SignupView.as_view(), name="devsignup"),
     path('test', views.TestView.as_view(), name="test"),
+    # profile
+    path('user/profile-stats/', views.user_profile_stats, name='user-profile-stats'),
+    # user 조회
     path('user/<str:username>/', views.UserDetailView.as_view(), name='user-detail'),
+    # username 변경
+    path('change-username/', views.change_username, name='change-username'),
+    # user image 변경
+    path('update-image/', views.UpdateUserImageView.as_view(), name='update-image'),
 ]

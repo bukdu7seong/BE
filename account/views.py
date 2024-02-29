@@ -8,9 +8,9 @@ import requests
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.http import HttpResponse
-from django.db import transaction
-from rest_framework import status
-from rest_framework.decorators import action, permission_classes
+from django.db import transaction, IntegrityError
+from rest_framework import status, generics
+from rest_framework.decorators import action, permission_classes, api_view
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -19,7 +19,7 @@ from rest_framework.viewsets import ViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User, EmailVerification
-from .serializer import UserSigninSerializer, UserSignupSerializer
+from .serializer import UserSigninSerializer, UserSignupSerializer, UserDetailSerializer, UserImageUpdateSerializer
 from ts import exceptions
 
 
@@ -193,12 +193,66 @@ class TestView(APIView):
         return HttpResponse("ok")
     
 
-from rest_framework import generics
-from .serializer import UserDetailSerializer
-from rest_framework.permissions import IsAuthenticated
-
 class UserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserDetailSerializer
     lookup_field = 'username'
     permission_classes = [IsAuthenticated]  # 인증된 사용자만 접근 가능
+
+
+from game.models import Game
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_profile_stats(request):
+    user = request.user
+    # player2가 존재하는 게임만 고려
+    games_won = Game.objects.filter(winner=user, player2__isnull=False).count()
+    games_lost = Game.objects.filter(loser=user, player2__isnull=False).count()
+    total_games = games_won + games_lost
+    win_rate = (games_won / total_games * 100) if total_games > 0 else 0
+
+    user_info = {
+        "user_id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "img": user.image.url if user.image else None,
+    }
+
+    game_info = {
+        "win_rate": win_rate,
+        "wins": games_won,
+        "losses": games_lost,
+    }
+
+    return Response({
+        "user_info": user_info,
+        "game_info": game_info,
+    })
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+@transaction.atomic
+def change_username(request):
+    user = request.user
+    new_username = request.data.get('new_username')
+    if not new_username:
+        return Response({'error': '새로운 username을 제공해야 합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        user.username = new_username
+        user.save()
+        return Response({'message': 'username이 성공적으로 변경되었습니다.'}, status=status.HTTP_200_OK)
+    except IntegrityError:
+        return Response({'error': '이미 존재하는 username입니다.'}, status=status.HTTP_409_CONFLICT)
+    
+class UpdateUserImageView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserImageUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
