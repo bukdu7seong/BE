@@ -2,7 +2,6 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 import json
 from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model
-from channels.db import database_sync_to_async
 
 CustomUser = get_user_model()
 
@@ -10,7 +9,6 @@ CustomUser = get_user_model()
 class UserStatusConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         user = self.scope["user"]
-        print(user.username)
         if user.is_authenticated:
             await self.update_user_login_status(user, True)
             await self.accept()

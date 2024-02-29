@@ -10,7 +10,6 @@ from django.contrib.auth import get_user_model
 @database_sync_to_async
 def get_user_from_token(token):
     try:
-        # simple-jwt의 AccessToken을 사용하여 토큰을 검증합니다.
         access_token = AccessToken(token)
         user_id = access_token['user_id']
         user = get_user_model().objects.get(id=user_id)
