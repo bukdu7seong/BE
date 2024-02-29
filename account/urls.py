@@ -14,4 +14,5 @@ urlpatterns = [
     #테스트용
     path('devsignup', views.SignupView.as_view(), name="devsignup"),
     path('test', views.TestView.as_view(), name="test"),
+    path('user/<str:username>/', views.UserDetailView.as_view(), name='user-detail'),
 ]

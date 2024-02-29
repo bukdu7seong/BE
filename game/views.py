@@ -6,6 +6,7 @@ from .models import Game
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
+from ts.exceptions import InvalidGameModeException, PlayerNotMatchedException
 
 AppUser = get_user_model()
 
@@ -24,7 +25,7 @@ class GameResultView(APIView):
             loser = AppUser.objects.get(email=loser_email) if loser_email else None
 
             if game_mode not in [choice[0] for choice in Game.GAME_MODE_CHOICES]:
-                return Response({"error": "Invalid game mode."}, status=status.HTTP_400_BAD_REQUEST)
+                raise InvalidGameModeException()
 
             game = Game.objects.create(
                 player1=player1,
@@ -47,7 +48,7 @@ class GameResultView(APIView):
         try:
             game = Game.objects.get(game_id=game_id)
             if player1 != game.player1:
-                return Response({"error": "Player1 is not matched."}, status=status.HTTP_400_BAD_REQUEST)
+                raise PlayerNotMatchedException()
             
             # player2_email을 사용하여 User 인스턴스를 조회
             player2 = None  # player2 초기화

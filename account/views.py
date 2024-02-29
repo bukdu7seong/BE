@@ -191,3 +191,14 @@ class SignupView(APIView):
 class TestView(APIView):
     def get(self, request, *args, **kwargs):
         return HttpResponse("ok")
+    
+
+from rest_framework import generics
+from .serializer import UserDetailSerializer
+from rest_framework.permissions import IsAuthenticated
+
+class UserDetailView(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserDetailSerializer
+    lookup_field = 'username'
+    permission_classes = [IsAuthenticated]  # 인증된 사용자만 접근 가능
