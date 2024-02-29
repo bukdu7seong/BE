@@ -3,7 +3,7 @@ import random
 import string
 
 from typing import Literal
-from datetime import timedelta, timezone, datetime
+from datetime import timedelta, datetime
 
 import pytz
 import requests
