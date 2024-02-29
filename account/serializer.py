@@ -83,3 +83,23 @@ class UserProfileStatsSerializer(serializers.ModelSerializer):
 
     def get_losses(self, obj):
         return Game.objects.filter(loser=obj, player2__isnull=False).count()
+    
+class User2FASerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['is_2fa']
+
+    def update(self, instance, validated_data):
+        instance.is_2fa = validated_data.get('is_2fa', instance.is_2fa)
+        instance.save()
+        return instance
+
+class UserLanguageUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['language']
+
+    def update(self, instance, validated_data):
+        instance.language = validated_data.get('language', instance.language)
+        instance.save()
+        return instance

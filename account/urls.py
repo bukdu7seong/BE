@@ -25,4 +25,10 @@ urlpatterns = [
     path('update-image/', views.UpdateUserImageView.as_view(), name='update-image'),
     # user password 변경
     path('change-password/', views.ChangePasswordView.as_view(), name='change-password'),
+    # 2fa 변경
+    path('update-2fa/', views.UpdateUser2FAView.as_view(), name='update-2fa'),
+    # 언어 변경
+    path('update-language/', views.UpdateUserLanguageView.as_view(), name='update-language'),
+    # 회원 탈퇴
+    path('delete-account/', views.UserDeleteView.as_view(), name='delete-account'),
 ]

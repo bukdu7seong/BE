@@ -20,7 +20,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import make_password
 
 from .models import User, EmailVerification
-from .serializer import UserSigninSerializer, UserSignupSerializer, UserDetailSerializer, UserImageUpdateSerializer, UserProfileStatsSerializer
+from .serializer import UserSigninSerializer, UserSignupSerializer, UserDetailSerializer, UserImageUpdateSerializer, UserProfileStatsSerializer, User2FASerializer, UserLanguageUpdateSerializer
 from ts import exceptions
 
 
@@ -44,7 +44,6 @@ class MyLoginView(ViewSet):
         return self._get_user_token(request)
 
 
-    @transaction.atomic
     @action(detail=False, methods=['post'], url_path='signin')
     def login_account(self, request):
         username = request.data.get('username')
@@ -217,6 +216,8 @@ def user_profile_stats(request):
         "user_id": user.id,
         "username": user.username,
         "img": user.image.url if user.image else None,
+        "language": user.language,
+        "is_2fa": user.is_2fa,
     }
 
     game_info = {
@@ -284,3 +285,36 @@ class OtherUserProfileStatsView(APIView):
             return Response(serializer.data)
         except User.DoesNotExist:
             return Response({'error': '사용자를 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class UpdateUser2FAView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        serializer = User2FASerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "2FA 설정이 업데이트 되었습니다."})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UpdateUserLanguageView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserLanguageUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "언어 설정이 업데이트 되었습니다."})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UserDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        user.delete()
+        return Response({"message": "회원 탈퇴가 성공적으로 처리되었습니다."}, status=status.HTTP_204_NO_CONTENT)
