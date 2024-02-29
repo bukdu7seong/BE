@@ -11,7 +11,6 @@ import os
 
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter
-from django.urls import path, include
 from loginCheck.middleware import TokenAuthMiddleware
 import loginCheck.urls as loginCheck_urls
 
