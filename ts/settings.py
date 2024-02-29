@@ -41,6 +41,9 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
+    'loginCheck', #
     'account',  # 추가
     'friend',  # 추가
     'game',  # 추가
@@ -57,6 +60,9 @@ INSTALLED_APPS = [
     'sslserver',  # 추가
     'rest_framework_simplejwt',
 ]
+
+# asgi application setting
+ASGI_APPLICATION = "ts.asgi.application"
 
 AUTH_USER_MODEL = 'account.User'
 REST_USE_JWT = True
