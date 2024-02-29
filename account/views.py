@@ -162,6 +162,7 @@ class EmailService:
                 if datetime.now(pytz.UTC) - user.emailverification.updated_at < timedelta(minutes=5):
                     verification.delete()
                     user.is_verified = True
+                    user.save()
                     return True
         return False
 
