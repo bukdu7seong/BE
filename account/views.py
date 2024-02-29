@@ -1,6 +1,8 @@
 import json
 import random
 import string
+
+from typing import Literal
 from datetime import timedelta, timezone, datetime
 
 import pytz
@@ -42,7 +44,6 @@ class MyLoginView(ViewSet):
     def login_dev(self, request):
         return self._get_user_token(request)
 
-
     @transaction.atomic
     @action(detail=False, methods=['post'], url_path='signin')
     def login_account(self, request):
@@ -51,15 +52,7 @@ class MyLoginView(ViewSet):
         serializer = UserSigninSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if user.is_2fa:
-            code = EmailService.send_verification_email(user.email)
-            try:
-                verification = user.emailverification
-                verification.code = code
-                verification.type = 'LOGIN'
-                verification.save()
-            except EmailVerification.DoesNotExist:
-                verification = EmailVerification(user=user, code=code)
-                verification.save()
+            code = EmailService.send_verification_email(user, 'login')
             return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
         return self._get_user_token(request)
 
@@ -92,7 +85,7 @@ class MyLoginView(ViewSet):
                 email = self._get_42_email(response)
                 user = User.objects.get(email=email)
                 if user.is_2fa:
-                    EmailService.send_verification_email(user.email)
+                    EmailService.send_verification_email(user, 'login')
                     return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
                 request.data['email'] = email
                 refresh = RefreshToken.for_user(user)
@@ -117,6 +110,8 @@ class MyLoginView(ViewSet):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+            user = User.objects.get(email=email)
+            EmailService.send_verification_email(user, 'login')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             raise ValidationError('invalid input')
@@ -154,6 +149,17 @@ class MyLoginView(ViewSet):
 
 class EmailService:
     @classmethod
+    def email_verification_update(cls, user, code, code_type: Literal['login', 'pass', 'game'] = 'game'):
+        try:
+            verification = user.emailverification
+            verification.code = code
+            verification.type = code_type
+            verification.save()
+        except EmailVerification.DoesNotExist:
+            verification = EmailVerification(user=user, code=code, type=code_type)
+            verification.save()
+
+    @classmethod
     def get_verification_code(cls):
         random_value = string.ascii_letters + string.digits
         random_value = list(random_value)
@@ -162,12 +168,14 @@ class EmailService:
         return code
 
     @classmethod
-    def send_verification_email(cls, email):
+    def send_verification_email(cls, user, code_type: Literal['login', 'pass', 'game']):
         code = cls.get_verification_code()
+        cls.email_verification_update(user, code, code_type)
         content = "다음 코드를 인증창에 입력해주세요.\n" + code
-        to = [email]
+        to = [user.email]
         mail = EmailMessage("Verification code for TS", content, to=to)
         mail.send()
+
         return code
 
 
@@ -187,15 +195,17 @@ class SignupView(APIView):
         else:
             raise ValidationError('invalid input')
 
+
 @permission_classes([IsAuthenticated])
 class TestView(APIView):
     def get(self, request, *args, **kwargs):
         return HttpResponse("ok")
-    
+
 
 from rest_framework import generics
 from .serializer import UserDetailSerializer
 from rest_framework.permissions import IsAuthenticated
+
 
 class UserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
