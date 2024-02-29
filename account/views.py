@@ -17,9 +17,10 @@ from rest_framework.serializers import ValidationError
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.hashers import make_password
 
 from .models import User, EmailVerification
-from .serializer import UserSigninSerializer, UserSignupSerializer, UserDetailSerializer, UserImageUpdateSerializer
+from .serializer import UserSigninSerializer, UserSignupSerializer, UserDetailSerializer, UserImageUpdateSerializer, UserProfileStatsSerializer
 from ts import exceptions
 
 
@@ -214,7 +215,6 @@ def user_profile_stats(request):
 
     user_info = {
         "user_id": user.id,
-        "email": user.email,
         "username": user.username,
         "img": user.image.url if user.image else None,
     }
@@ -256,3 +256,31 @@ class UpdateUserImageView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ChangePasswordView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserDetailSerializer
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        if not user.check_password(old_password):
+            return Response({"error": "기존 비밀번호가 일치하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+        user.password = make_password(new_password)
+        user.save()
+        return Response({"message": "비밀번호가 성공적으로 변경되었습니다."}, status=status.HTTP_200_OK)
+
+
+class OtherUserProfileStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user_id = kwargs.get('user_id')
+        try:
+            user = User.objects.get(id=user_id)
+            serializer = UserProfileStatsSerializer(user)
+            return Response(serializer.data)
+        except User.DoesNotExist:
+            return Response({'error': '사용자를 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)

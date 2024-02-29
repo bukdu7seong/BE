@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate, get_user_model
+from game.models import Game
 from rest_framework_simplejwt.tokens import RefreshToken
+
+
 
 User = get_user_model()
 
@@ -58,3 +61,25 @@ class UserImageUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['image']
+
+class UserProfileStatsSerializer(serializers.ModelSerializer):
+    win_rate = serializers.SerializerMethodField()
+    wins = serializers.SerializerMethodField()
+    losses = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('username', 'image', 'win_rate', 'wins', 'losses')
+
+    def get_win_rate(self, obj):
+        # 승률 계산 로직
+        games_won = Game.objects.filter(winner=obj, player2__isnull=False).count()
+        games_lost = Game.objects.filter(loser=obj, player2__isnull=False).count()
+        total_games = games_won + games_lost
+        return (games_won / total_games * 100) if total_games > 0 else 0
+
+    def get_wins(self, obj):
+        return Game.objects.filter(winner=obj, player2__isnull=False).count()
+
+    def get_losses(self, obj):
+        return Game.objects.filter(loser=obj, player2__isnull=False).count()

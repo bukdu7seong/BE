@@ -17,9 +17,12 @@ urlpatterns = [
     # profile
     path('user/profile-stats/', views.user_profile_stats, name='user-profile-stats'),
     # user 조회
-    path('user/<str:username>/', views.UserDetailView.as_view(), name='user-detail'),
+    path('search/<str:username>/', views.UserDetailView.as_view(), name='user-detail'),
+    path('user-stats/<int:user_id>/', views.OtherUserProfileStatsView.as_view(), name='other-user-profile-stats'),
     # username 변경
     path('change-username/', views.change_username, name='change-username'),
     # user image 변경
     path('update-image/', views.UpdateUserImageView.as_view(), name='update-image'),
+    # user password 변경
+    path('change-password/', views.ChangePasswordView.as_view(), name='change-password'),
 ]
