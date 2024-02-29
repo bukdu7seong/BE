@@ -10,19 +10,16 @@ https://docs.djangoproject.com/en/5.0/howto/deployment/asgi/
 import os
 
 from django.core.asgi import get_asgi_application
-from channels.routing import ProtocolTypeRouter, URLRouter
-from django.urls import path
+from channels.routing import ProtocolTypeRouter
+from django.urls import path, include
 from loginCheck.middleware import TokenAuthMiddleware
-from loginCheck.consumers import UserStatusConsumer
-
+import loginCheck.urls as loginCheck_urls
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ts.settings')
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": TokenAuthMiddleware(
-        URLRouter([
-            path("ws/status", UserStatusConsumer.as_asgi()),
-        ])
+        loginCheck_urls.websocket_urlpatterns
     ),
 })
