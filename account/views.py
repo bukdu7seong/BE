@@ -57,7 +57,7 @@ class MyLoginView(ViewSet):
 
     @transaction.atomic
     @action(detail=False, methods=['post'], url_path='2fa')
-    def verify_email(self, request):
+    def verify_login_2fa(self, request):
         code = request.data.get('code')
         email = request.data.get('email')
         user = User.objects.get(email=email)
@@ -70,7 +70,7 @@ class MyLoginView(ViewSet):
         else:
             raise ValidationError("Invalid code")
 
-    @action(methods=['get'], detail=False, url_path='2fa')
+    @action(methods=['get'], detail=False, url_path='2fa/mail')
     @transaction.atomic
     def resend_verification_email(self, request):
         email = request.data.get('email')
@@ -161,10 +161,12 @@ class EmailService:
             if verification.code == code:
                 if datetime.now(pytz.UTC) - user.emailverification.updated_at < timedelta(minutes=5):
                     verification.delete()
+                    user.is_verified = True
                     return True
         return False
 
     @classmethod
+    @transaction.atomic
     def email_verification_update(cls, user, code, code_type: Literal['login', 'pass', 'game'] = 'game'):
         try:
             verification = user.emailverification
