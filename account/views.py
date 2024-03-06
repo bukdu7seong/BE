@@ -110,7 +110,7 @@ class MyLoginView(ViewSet):
         code = request.data.get('code')
         response = self._get_42_access_token(code)
         if response.status_code != 200:
-            raise exceptions.FTOauthException('토큰 발급에 실패 하였습니다.')
+            raise exceptions.FTOauthException('토큰 발급에 실패 하였습니다.', status=status.HTTP_400_BAD_REQUEST)
         email = self._get_42_email(response)
         request.data['email'] = email
         serializer = UserSignupSerializer(data=request.data)
