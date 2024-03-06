@@ -1,7 +1,8 @@
 import json
 import random
 import string
-from datetime import datetime, timedelta
+from typing import Literal
+from datetime import timedelta, datetime
 
 import pytz
 import requests
@@ -39,41 +40,29 @@ class FtAuthView(APIView):
 # Login View
 @permission_classes([AllowAny])
 class MyLoginView(ViewSet):
-
     @action(methods=['post'], detail=False, url_path='devlogin')
     def login_dev(self, request):
         return self._get_user_token(request)
 
-
+    @transaction.atomic
     @action(detail=False, methods=['post'], url_path='signin')
     def login_account(self, request):
         username = request.data.get('username')
         user = User.objects.get(username=username)
         serializer = UserSigninSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if user.is_2fa:
-            code = EmailService.send_verification_email(user.email)
-            try:
-                verification = user.emailverification
-                verification.code = code
-                verification.type = 'LOGIN'
-                verification.save()
-            except EmailVerification.DoesNotExist:
-                verification = EmailVerification(user=user, code=code)
-                verification.save()
+        if user.is_2fa or not user.is_verified:
+            code = EmailService.send_verification_email(user, 'login')
             return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
         return self._get_user_token(request)
 
     @transaction.atomic
     @action(detail=False, methods=['post'], url_path='2fa')
-    def verify_email(self, request):
+    def verify_login_2fa(self, request):
         code = request.data.get('code')
         email = request.data.get('email')
         user = User.objects.get(email=email)
-        if user.emailverification.code == code:
-            if datetime.now(pytz.UTC) - user.emailverification.updated_at > timedelta(seconds=5):
-                raise exceptions.TwoFactorException("code is expired", status.HTTP_400_BAD_REQUEST)
-            user.emailverification.delete()
+        if EmailService.verify_email(user, code, 'login'):
             refresh = RefreshToken.for_user(user)
             return Response({
                 'refresh': str(refresh),
@@ -81,6 +70,15 @@ class MyLoginView(ViewSet):
             })
         else:
             raise ValidationError("Invalid code")
+
+    @action(methods=['get'], detail=False, url_path='2fa/mail')
+    @transaction.atomic
+    def resend_verification_email(self, request):
+        email = request.data.get('email')
+        user = User.objects.get(email=request.data.get(email))
+        verification = user.emailverification
+        EmailService.send_verification_email(user, verification.type)
+        return Response(status.HTTP_200_OK)
 
     @transaction.atomic
     @action(detail=False, methods=['post'], url_path='42code')
@@ -93,7 +91,7 @@ class MyLoginView(ViewSet):
                 email = self._get_42_email(response)
                 user = User.objects.get(email=email)
                 if user.is_2fa:
-                    EmailService.send_verification_email(user.email)
+                    EmailService.send_verification_email(user, 'login')
                     return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
                 request.data['email'] = email
                 refresh = RefreshToken.for_user(user)
@@ -118,6 +116,8 @@ class MyLoginView(ViewSet):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+            user = User.objects.get(email=email)
+            EmailService.send_verification_email(user, 'login')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             raise ValidationError('invalid input')
@@ -155,6 +155,31 @@ class MyLoginView(ViewSet):
 
 class EmailService:
     @classmethod
+    @transaction.atomic
+    def verify_email(cls, user, code, code_type):
+        verification = user.emailverification
+        if verification.type == code_type:
+            if verification.code == code:
+                if datetime.now(pytz.UTC) - user.emailverification.updated_at < timedelta(minutes=5):
+                    verification.delete()
+                    user.is_verified = True
+                    user.save()
+                    return True
+        return False
+
+    @classmethod
+    @transaction.atomic
+    def email_verification_update(cls, user, code, code_type: Literal['login', 'pass', 'game'] = 'game'):
+        try:
+            verification = user.emailverification
+            verification.code = code
+            verification.type = code_type
+            verification.save()
+        except EmailVerification.DoesNotExist:
+            verification = EmailVerification(user=user, code=code, type=code_type)
+            verification.save()
+
+    @classmethod
     def get_verification_code(cls):
         random_value = string.ascii_letters + string.digits
         random_value = list(random_value)
@@ -163,13 +188,17 @@ class EmailService:
         return code
 
     @classmethod
-    def send_verification_email(cls, email):
+    @transaction.atomic
+    def send_verification_email(cls, user, code_type: Literal['login', 'pass', 'game']):
         code = cls.get_verification_code()
+        cls.email_verification_update(user, code, code_type)
         content = "다음 코드를 인증창에 입력해주세요.\n" + code
-        to = [email]
+        to = [user.email]
         mail = EmailMessage("Verification code for TS", content, to=to)
         mail.send()
-        return code
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
 
 # SignUp View
 @permission_classes([AllowAny])
@@ -183,11 +212,18 @@ class SignupView(APIView):
         else:
             raise ValidationError('invalid input')
 
+
 @permission_classes([IsAuthenticated])
 class TestView(APIView):
     def get(self, request, *args, **kwargs):
         return HttpResponse("ok")
-    
+
+
+
+from rest_framework import generics
+from .serializer import UserDetailSerializer
+from rest_framework.permissions import IsAuthenticated
+
 
 class UserDetailView(generics.RetrieveAPIView):
     """

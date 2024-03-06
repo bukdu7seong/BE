@@ -53,10 +53,13 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
 
     language = models.CharField(choices=LANGUAGE_CHOICES, max_length=4, default='KR')
 
     image = models.ImageField(upload_to='images/', blank=True, null=True)
+
+    login = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
