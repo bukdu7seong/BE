@@ -5,14 +5,24 @@ from django.contrib.auth import get_user_model
 from .models import Game
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from django.db import transaction
 from django.db.models import Q
 from ts.exceptions import InvalidGameModeException, PlayerNotMatchedException
 
 AppUser = get_user_model()
 
 class GameResultView(APIView):
+    """
+    GameResultView는 게임 결과를 생성하고 업데이트하는 API 엔드포인트를 제공합니다.
+    - POST 요청을 통해 새로운 게임 결과를 생성합니다. 게임의 참가자, 승자, 패자, 게임 모드를 데이터로 받아 게임 결과를 데이터베이스에 저장합니다.
+    - PATCH 요청을 통해 기존 게임 결과를 업데이트합니다. 특정 게임 ID를 기반으로 게임의 두 번째 참가자를 추가하거나, 승자와 패자를 업데이트할 수 있습니다.
+    - 인증된 사용자만이 게임 결과를 생성하거나 업데이트할 수 있습니다.
+    - 게임 모드가 유효하지 않은 경우, InvalidGameModeException 예외를 발생시킵니다.
+    - 게임 결과를 업데이트할 때, 요청자가 게임의 첫 번째 참가자와 일치하지 않으면 PlayerNotMatchedException 예외를 발생시킵니다.
+    """
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         player1 = request.user
         winner_email = request.data.get('winner')
@@ -40,7 +50,8 @@ class GameResultView(APIView):
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
+
+    @transaction.atomic
     def patch(self, request, **kwargs):
         game_id = kwargs.get('game_id')
         player1 = request.user
@@ -74,6 +85,13 @@ class GameResultView(APIView):
         
 
 class GameHistoryView(APIView, PageNumberPagination):
+    """
+    GameHistoryView는 사용자의 게임 플레이 기록을 조회하는 API 엔드포인트를 제공합니다.
+    - GET 요청을 통해 인증된 사용자의 게임 승리 및 패배 기록을 페이지네이션 형식으로 조회할 수 있습니다.
+    - 페이지 당 항목 수(page_size)는 기본적으로 5로 설정되어 있으며, 필요에 따라 조정할 수 있습니다.
+    - 인증된 사용자만이 자신의 게임 플레이 기록을 조회할 수 있습니다.
+    - 조회된 게임 기록에는 게임 ID, 참가자, 승자, 패자, 게임 모드, 플레이된 시간이 포함됩니다.
+    """
     permission_classes = [IsAuthenticated]
     page_size = 5  # 페이지 당 항목 수를 설정합니다. 필요에 따라 조정하세요.
 

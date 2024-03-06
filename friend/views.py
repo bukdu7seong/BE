@@ -4,14 +4,23 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from .models import Friends, FriendStatus
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from ts.exceptions import SelfRequestException, AlreadyFriendsOrRequested
 
 AppUser = get_user_model()
 
 class FriendRequestView(APIView):
+    """
+    FriendRequestView는 친구 요청을 보내는 API 엔드포인트를 제공합니다.
+    사용자가 다른 사용자에게 친구 요청을 보낼 수 있습니다.
+    - 인증된 사용자만이 친구 요청을 보낼 수 있습니다.
+    - 요청을 받는 사용자의 ID는 요청 데이터에서 'user_id'로 전달받습니다.
+    - 자기 자신에게 친구 요청을 보낼 수 없으며, 이미 친구이거나 요청을 보낸 상태라면 오류를 반환합니다.
+    """
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         try:
             user_id = request.data.get('user_id')
@@ -34,6 +43,12 @@ class FriendRequestView(APIView):
             return JsonResponse({'error': e.message}, status=e.status)
 
 class FriendPendingListView(APIView):
+    """
+    FriendPendingListView는 대기 중인 친구 요청 목록을 조회하는 API 엔드포인트를 제공합니다.
+    사용자가 받은 친구 요청 중 아직 수락되지 않은 요청의 목록을 확인할 수 있습니다.
+    - 인증된 사용자만이 자신에게 온 대기 중인 친구 요청 목록을 조회할 수 있습니다.
+    - 페이지네이션을 지원하여, 페이지 번호('page')와 페이지 당 항목 수('pageSize')를 쿼리 파라미터로 받습니다.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -64,8 +79,16 @@ class FriendPendingListView(APIView):
         })
 
 class AcceptFriendRequestView(APIView):
+    """
+    AcceptFriendRequestView는 친구 요청을 수락하는 API 엔드포인트를 제공합니다.
+    사용자가 받은 친구 요청 중 하나를 수락할 수 있습니다.
+    - 인증된 사용자만이 친구 요청을 수락할 수 있습니다.
+    - 수락할 친구 요청의 ID는 요청 데이터에서 'friend_request_id'로 전달받습니다.
+    - 해당 ID의 친구 요청이 존재하지 않거나 이미 수락된 경우 오류를 반환합니다.
+    """
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         friend_request_id = request.data.get('friend_request_id')
         if not friend_request_id:
@@ -85,6 +108,12 @@ class AcceptFriendRequestView(APIView):
         return JsonResponse({'message': 'Friend request accepted successfully'})
     
 class FriendAcceptedList(APIView):
+    """
+    FriendAcceptedList는 친구 요청을 수락하여 현재 친구 관계에 있는 사용자 목록을 조회하는 API 엔드포인트를 제공합니다.
+    사용자가 현재 친구 관계에 있는 사용자의 목록을 확인할 수 있습니다.
+    - 인증된 사용자만이 자신의 친구 목록을 조회할 수 있습니다.
+    - 페이지네이션을 지원하여, 페이지 번호('page')와 페이지 당 항목 수('pageSize')를 쿼리 파라미터로 받습니다.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -126,8 +155,16 @@ class FriendAcceptedList(APIView):
         })
     
 class DeleteFriendRequestView(APIView):
+    """
+    DeleteFriendRequestView는 친구 요청을 삭제하는 API 엔드포인트를 제공합니다.
+    사용자가 보낸 친구 요청을 취소하거나 받은 친구 요청을 거절할 수 있습니다.
+    - 인증된 사용자만이 친구 요청을 삭제할 수 있습니다.
+    - 삭제할 친구 요청의 ID는 쿼리 파라미터 'friend_request_id'로 전달받습니다.
+    - 해당 ID의 친구 요청이 존재하지 않거나 이미 수락/거절된 경우 오류를 반환합니다.
+    """
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def delete(self, request):
         friend_request_id = request.query_params.get('friend_request_id')
         if not friend_request_id:
