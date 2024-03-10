@@ -85,15 +85,8 @@ class GameResultView(APIView):
         
 
 class GameHistoryView(APIView, PageNumberPagination):
-    """
-    GameHistoryView는 사용자의 게임 플레이 기록을 조회하는 API 엔드포인트를 제공합니다.
-    - GET 요청을 통해 인증된 사용자의 게임 승리 및 패배 기록을 페이지네이션 형식으로 조회할 수 있습니다.
-    - 페이지 당 항목 수(page_size)는 기본적으로 5로 설정되어 있으며, 필요에 따라 조정할 수 있습니다.
-    - 인증된 사용자만이 자신의 게임 플레이 기록을 조회할 수 있습니다.
-    - 조회된 게임 기록에는 게임 ID, 참가자, 승자, 패자, 게임 모드, 플레이된 시간이 포함됩니다.
-    """
     permission_classes = [IsAuthenticated]
-    page_size = 5  # 페이지 당 항목 수를 설정합니다. 필요에 따라 조정하세요.
+    page_size = 5
 
     def get(self, request):
         user = request.user
@@ -102,12 +95,11 @@ class GameHistoryView(APIView, PageNumberPagination):
         if result_page is not None:
             games_data = [{
                 "id": game.game_id,
-                "player1": game.player1.username,
-                "player2": game.player2.username,
-                "winner": game.winner.username,
-                "loser": game.loser.username,
+                "other": game.player2.username if game.player1 == user else game.player1.username,
+                "other_img": game.player2.image.url if game.player1 == user else game.player1.image.url,
+                "winner": True if game.winner == user else False,
                 "game_mode": game.game_mode,
-                "played_at": game.played_at.strftime('%Y-%m-%d %H:%M:%S')  # 날짜 형식을 문자열로 변환
+                "played_at": game.played_at.strftime('%Y-%m-%d %H:%M:%S')
             } for game in result_page]
             return self.get_paginated_response(games_data)
         else:

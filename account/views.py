@@ -272,7 +272,7 @@ class UserProfileStatsView(APIView):
         user_info = {
             "user_id": user.id,
             "username": user.username,
-            "img": user.image.url if user.image else None,
+            "img": user.image.url,
             "language": user.language,
             "is_2fa": user.is_2fa,
         }
