@@ -80,7 +80,7 @@ class MyLoginView(ViewSet):
         else:
             raise ValidationError("Invalid code")
 
-    @action(methods=['get'], detail=False, url_path='2fa/mail')
+    @action(methods=['get'], detail=False, url_path='2fa/re')
     @transaction.atomic
     def resend_verification_email(self, request):
         email = request.data.get('email')
@@ -121,8 +121,9 @@ class MyLoginView(ViewSet):
         if response.status_code != 200:
             raise exceptions.FTOauthException('토큰 발급에 실패 하였습니다.', status=status.HTTP_400_BAD_REQUEST)
         email = self._get_42_email(response)
-        request.data['email'] = email
-        serializer = UserSignupSerializer(data=request.data)
+        data = request.data.copy()
+        data['email'] = email
+        serializer = UserSignupSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             user = User.objects.get(email=email)
