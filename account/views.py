@@ -56,6 +56,15 @@ class MyLoginView(ViewSet):
             return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
         return self._get_user_token(request)
 
+    @action(detail=False, methods=['get'], url_path='check')
+    def checkUsername(self, request):
+        try:
+            user = User.objects.get(request.data.get('username'))
+        except User.DoesNotExist:
+            return Response(False, status=status.HTTP_200_OK)
+        return Response(True, status=status.HTTP_200_OK)
+
+
     @transaction.atomic
     @action(detail=False, methods=['post'], url_path='2fa')
     def verify_login_2fa(self, request):
