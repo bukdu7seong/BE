@@ -68,7 +68,7 @@ class FriendPendingListView(APIView):
         except:
             return JsonResponse({'error': 'Page not found'}, status=404)
 
-        pending_list = [{'id': friend.user1.id, 'username': friend.user1.username, 'email': friend.user1.email} for friend in friends_page]
+        pending_list = [{'id': friend.user1.id, 'username': friend.user1.username, 'email': friend.user1.email, 'img': friend.user1.image.url if friend.user1.image else None} for friend in friends_page]
 
         return JsonResponse({
             'page': page,
@@ -143,7 +143,8 @@ class FriendAcceptedList(APIView):
             accepted_list.append({
                 'id': friend_user.id, 
                 'username': friend_user.username, 
-                'email': friend_user.email
+                'email': friend_user.email,
+                'img': friend_user.image.url if friend_user.image else None
             })
 
         return JsonResponse({
