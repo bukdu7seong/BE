@@ -573,10 +573,6 @@ class Request2FAView(APIView):
         if not user:
             return Response({"error": "해당 이메일의 사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         
-        # 2FA 코드 생성 및 이메일 인증 정보 업데이트
-        code = EmailService.get_verification_code()
-        EmailService.email_verification_update(user, code, '2fa')
-        
         # 실제로 이메일 전송
         EmailService.send_verification_email(user, '2fa')
         
