@@ -31,4 +31,7 @@ urlpatterns = [
     path('update-language/', views.UpdateUserLanguageView.as_view(), name='update-language'),
     # 회원 탈퇴
     path('delete-account/', views.UserDeleteView.as_view(), name='delete-account'),
+    # 게임 2FA
+    path('request-2fa/', views.Request2FAView.as_view(), name='request-2fa'),
+    path('verify-2fa/', views.Verify2FAView.as_view(), name='verify-2fa'),
 ]

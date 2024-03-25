@@ -534,3 +534,107 @@ class UserDeleteView(APIView):
         user = request.user
         user.delete()
         return Response({"message": "회원 탈퇴가 성공적으로 처리되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+    
+class Request2FAView(APIView):
+    """
+    Request2FAView는 사용자에게 2단계 인증(2FA) 코드를 이메일로 전송하는 API 엔드포인트를 제공합니다.
+    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+
+    - permission_classes: [AllowAny]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 제한하지 않습니다. 
+      즉, 인증되지 않은 사용자도 2FA 코드를 요청할 수 있습니다.
+
+    POST 요청:
+    이 뷰는 POST 요청을 처리하여 사용자의 이메일 주소로 2FA 코드를 전송합니다.
+    - 요청에서 'email' 키를 통해 전달받은 이메일 주소를 사용하여 해당 이메일 주소를 가진 사용자를 데이터베이스에서 조회합니다.
+    - 해당 사용자가 존재하지 않는 경우, 적절한 에러 메시지와 함께 404 Not Found 응답을 반환합니다.
+    - 사용자가 존재하는 경우, EmailService 클래스를 사용하여 2FA 코드를 생성하고, 이메일 인증 정보를 업데이트한 후, 
+      생성된 2FA 코드를 사용자의 이메일 주소로 전송합니다.
+    - 2FA 코드 전송이 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다.
+
+    이 클래스 뷰는 'request-2fa/' URL 패턴에 연결되어 있으며, 해당 URL로 POST 요청이 들어오면 사용자의 이메일 주소로 2FA 코드를 전송하는 처리를 수행합니다.
+
+    주요 처리 과정:
+    1. POST 요청에서 'email' 키를 통해 전달받은 이메일 주소를 사용하여 데이터베이스에서 해당 이메일 주소를 가진 사용자를 조회합니다.
+    2. 해당 사용자가 존재하지 않는 경우, 적절한 에러 메시지와 함께 404 Not Found 응답을 반환합니다.
+    3. 사용자가 존재하는 경우, EmailService 클래스의 get_verification_code 메서드를 호출하여 2FA 코드를 생성합니다.
+    4. 생성된 2FA 코드와 '2fa' 타입을 사용하여 사용자의 이메일 인증 정보를 업데이트합니다.
+    5. EmailService 클래스의 send_verification_email 메서드를 호출하여 생성된 2FA 코드를 사용자의 이메일 주소로 전송합니다.
+    6. 2FA 코드 전송이 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        print(email)  # 이메일 주소가 제대로 전달되었는지 확인하기 위한 로그
+        if not email:
+            return Response({"error": "이메일 주소가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": "해당 이메일의 사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 2FA 코드 생성 및 이메일 인증 정보 업데이트
+        code = EmailService.get_verification_code()
+        EmailService.email_verification_update(user, code, '2fa')
+        
+        # 실제로 이메일 전송
+        EmailService.send_verification_email(user, '2fa')
+        
+        return Response({"message": "2FA 코드가 이메일로 발송되었습니다."}, status=status.HTTP_200_OK)
+
+class Verify2FAView(APIView):
+    """
+    Verify2FAView는 사용자가 제공한 2단계 인증(2FA) 코드를 검증하는 API 엔드포인트를 제공합니다.
+    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+
+    - permission_classes: [AllowAny]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 제한하지 않습니다.
+      즉, 인증되지 않은 사용자도 2FA 코드를 검증할 수 있습니다.
+
+    POST 요청:
+    이 뷰는 POST 요청을 처리하여 사용자가 제공한 2FA 코드의 유효성을 검증합니다.
+    - 요청에서 'email', 'code', 그리고 'game_id' 키를 통해 전달받은 이메일 주소, 2FA 코드, 게임 ID를 사용합니다.
+    - 해당 이메일 주소를 가진 사용자를 데이터베이스에서 조회합니다. 사용자가 존재하지 않는 경우, 적절한 에러 메시지와 함께 404 Not Found 응답을 반환합니다.
+    - EmailService 클래스를 사용하여 제공된 2FA 코드의 유효성을 검증합니다. 코드가 유효한 경우, 게임 ID에 해당하는 게임 객체를 조회하고, player2 필드를 업데이트합니다.
+    - 2FA 코드 검증이 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다. 코드가 유효하지 않거나, 게임 ID에 해당하는 게임을 찾을 수 없는 경우, 적절한 에러 메시지를 반환합니다.
+
+    이 클래스 뷰는 'verify-2fa/' URL 패턴에 연결되어 있으며, 해당 URL로 POST 요청이 들어오면 사용자의 2FA 코드를 검증하는 처리를 수행합니다.
+
+    주요 처리 과정:
+    1. POST 요청에서 'email', 'code', 'game_id' 키를 통해 전달받은 값을 사용하여 데이터베이스에서 해당 이메일 주소를 가진 사용자와 게임 ID에 해당하는 게임을 조회합니다.
+    2. 해당 사용자가 존재하지 않거나, 제공된 2FA 코드가 유효하지 않은 경우, 적절한 에러 메시지와 함께 응답을 반환합니다.
+    3. 게임 ID에 해당하는 게임이 존재하고, player2 필드가 비어있는 경우, player2 필드를 업데이트하고 게임 결과를 업데이트합니다.
+    4. 2FA 코드 검증 및 게임 업데이트가 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        code = request.data.get('code')
+        game_id = request.data.get('game_id')  # 게임 ID 추가
+
+        if not email or not code or not game_id:
+            return Response({"error": "이메일 주소, 2FA 코드, 게임 ID가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": "해당 이메일의 사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        if EmailService.verify_email(user, code, '2fa'):
+            try:
+                game = Game.objects.get(game_id=game_id)
+                if game.player2 is not None:
+                    return Response({"error": "이미 player2가 등록된 게임입니다."}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # 2FA 인증이 성공하면, player2를 업데이트
+                game.player2 = user
+                # winner와 loser 중 null인 필드에 player2를 할당
+                if game.winner is None and game.loser is not None:
+                    game.winner = user
+                elif game.loser is None and game.winner is not None:
+                    game.loser = user
+                game.save()
+                return Response({"message": "2FA 인증이 성공적으로 완료되었으며, 게임 결과가 업데이트 되었습니다."}, status=status.HTTP_200_OK)
+            except Game.DoesNotExist:
+                return Response({"error": "해당 게임 ID의 게임을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({"error": "2FA 코드가 일치하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
