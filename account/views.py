@@ -282,10 +282,10 @@ class UserProfileStatsView(APIView):
 
         user_info = {
             "user_id": user.id,
-			"username": user.username,
-            "img": user.image.url if user.image and hasattr(user.image, 'url') else 'static/images/profile/default.png',
-			"language": user.language,
-			"is_2fa": user.is_2fa,
+            "username": user.username,
+            "img": user.image.url,
+            "language": user.language,
+            "is_2fa": user.is_2fa,
         }
 
         game_info = {

@@ -57,7 +57,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     language = models.CharField(choices=LANGUAGE_CHOICES, max_length=4, default='KR')
 
-    image = models.ImageField(upload_to='images/', blank=True, null=True)
+    image = models.ImageField(upload_to='images/', blank=True, null=True, default='images/default.png')
 
     login = models.BooleanField(default=False)
 
