@@ -52,8 +52,9 @@ class MyLoginView(ViewSet):
         serializer = UserSigninSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if user.is_2fa or not user.is_verified:
+            data = { 'email': user.email }
             code = EmailService.send_verification_email(user, 'login')
-            return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
+            return Response(data, status=status.HTTP_301_MOVED_PERMANENTLY)
         return self._get_user_token(request)
 
     @action(detail=False, methods=['get'], url_path='check')

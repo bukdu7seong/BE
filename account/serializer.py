@@ -41,14 +41,15 @@ def issue(user):
 class UserSignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email', 'password')
+        fields = ('username', 'email', 'password', 'image')
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         user = User.objects.create_user(
             email=validated_data['email'],
             username=validated_data['username'],
-            password=validated_data['password']
+            password=validated_data['password'],
+            image=validated_data.get('image', 'images/default.png')  # 이미지 데이터 처리
         )
         return user
 
