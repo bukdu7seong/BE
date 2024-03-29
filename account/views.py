@@ -248,6 +248,7 @@ class UserDetailView(generics.RetrieveAPIView):
 
     이 클래스 뷰는 'api/account/search/<str:username>/' URL 패턴에 연결되어 있으며, 해당 URL로 GET 요청이 들어오면 지정된 username에 해당하는 사용자의 상세 정보를 반환합니다.
     """
+
     queryset = User.objects.all()
     serializer_class = UserDetailSerializer
     lookup_field = 'username'
@@ -541,8 +542,7 @@ class Request2FAView(APIView):
     Request2FAView는 사용자에게 2단계 인증(2FA) 코드를 이메일로 전송하는 API 엔드포인트를 제공합니다.
     이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
 
-    - permission_classes: [AllowAny]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 제한하지 않습니다. 
-      즉, 인증되지 않은 사용자도 2FA 코드를 요청할 수 있습니다.
+    - permission_classes: [IsAuthenticated]를 통해 이 뷰에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 이 API를 통해 사용자 정보를 조회할 수 있습니다.
 
     POST 요청:
     이 뷰는 POST 요청을 처리하여 사용자의 이메일 주소로 2FA 코드를 전송합니다.
@@ -562,14 +562,16 @@ class Request2FAView(APIView):
     5. EmailService 클래스의 send_verification_email 메서드를 호출하여 생성된 2FA 코드를 사용자의 이메일 주소로 전송합니다.
     6. 2FA 코드 전송이 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         email = request.data.get('email')
-        print(email)  # 이메일 주소가 제대로 전달되었는지 확인하기 위한 로그
         if not email:
             return Response({"error": "이메일 주소가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        if request.user.is_authenticated and request.user.email == email:
+            return Response({"error": "자신의 이메일로는 2FA 코드를 요청할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         user = User.objects.filter(email=email).first()
         if not user:
             return Response({"error": "해당 이메일의 사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
@@ -584,7 +586,7 @@ class Verify2FAView(APIView):
     Verify2FAView는 사용자가 제공한 2단계 인증(2FA) 코드를 검증하는 API 엔드포인트를 제공합니다.
     이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
 
-    - permission_classes: [AllowAny]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 제한하지 않습니다.
+    - permission_classes: [IsAuthenticated]를 통해 이 뷰에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 이 API를 통해 사용자 정보를 조회할 수 있습니다.
       즉, 인증되지 않은 사용자도 2FA 코드를 검증할 수 있습니다.
 
     POST 요청:
@@ -602,7 +604,7 @@ class Verify2FAView(APIView):
     3. 게임 ID에 해당하는 게임이 존재하고, player2 필드가 비어있는 경우, player2 필드를 업데이트하고 게임 결과를 업데이트합니다.
     4. 2FA 코드 검증 및 게임 업데이트가 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         email = request.data.get('email')
