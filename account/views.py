@@ -248,7 +248,6 @@ class UserDetailView(generics.RetrieveAPIView):
 
     이 클래스 뷰는 'api/account/search/<str:username>/' URL 패턴에 연결되어 있으며, 해당 URL로 GET 요청이 들어오면 지정된 username에 해당하는 사용자의 상세 정보를 반환합니다.
     """
-    permission_classes = [IsAuthenticated]
 
     queryset = User.objects.all()
     serializer_class = UserDetailSerializer
