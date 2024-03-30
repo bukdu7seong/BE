@@ -468,11 +468,16 @@ class UpdateUser2FAView(APIView):
     @transaction.atomic
     def patch(self, request, *args, **kwargs):
         user = request.user
+        if not set(request.data.keys()).issubset({'is_2fa'}):
+            return Response({"error": "유효하지 않은 요청입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = User2FASerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "2FA 설정이 업데이트 되었습니다."})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     
 class UpdateUserLanguageView(APIView):
     """
@@ -502,11 +507,15 @@ class UpdateUserLanguageView(APIView):
     @transaction.atomic
     def patch(self, request, *args, **kwargs):
         user = request.user
+        if not set(request.data.keys()).issubset({'language'}):
+            return Response({"error": "유효하지 않은 요청입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = UserLanguageUpdateSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "언어 설정이 업데이트 되었습니다."})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class UserDeleteView(APIView):
     """

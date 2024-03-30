@@ -90,6 +90,11 @@ class User2FASerializer(serializers.ModelSerializer):
         model = User
         fields = ['is_2fa']
 
+    def validate_is_2fa(self, value):
+        if value is None:
+            raise serializers.ValidationError("이 필드는 필수입니다.")
+        return value
+
     def update(self, instance, validated_data):
         instance.is_2fa = validated_data.get('is_2fa', instance.is_2fa)
         instance.save()
@@ -99,6 +104,11 @@ class UserLanguageUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['language']
+
+    def validate_language(self, value):
+        if value not in [choice[0] for choice in User.LANGUAGE_CHOICES]:
+            raise serializers.ValidationError("유효하지 않은 언어 설정입니다.")
+        return value
 
     def update(self, instance, validated_data):
         instance.language = validated_data.get('language', instance.language)

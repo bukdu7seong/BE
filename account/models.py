@@ -26,14 +26,14 @@ class UserManager(BaseUserManager):
         return superuser
 
 
-LANGUAGE_CHOICES = (
-    ('EN', 'English'),
-    ('FR', 'French'),
-    ('KR', 'Korean'),
-)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    LANGUAGE_CHOICES = (
+        ('EN', 'English'),
+        ('FR', 'French'),
+        ('KR', 'Korean'),
+    )
     username = models.CharField(
         verbose_name='username',
         max_length=20,
