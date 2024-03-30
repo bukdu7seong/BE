@@ -34,6 +34,9 @@ class GameResultView(APIView):
             winner = AppUser.objects.get(email=winner_email) if winner_email else None
             loser = AppUser.objects.get(email=loser_email) if loser_email else None
 
+            if winner is None and loser is None:
+                return Response({"error": "Both winner and loser are required."}, status=status.HTTP_400_BAD_REQUEST)
+
             if game_mode not in [choice[0] for choice in Game.GAME_MODE_CHOICES]:
                 raise InvalidGameModeException()
 
