@@ -533,10 +533,14 @@ class UserDeleteView(APIView):
 
     @transaction.atomic
     def delete(self, request, *args, **kwargs):
+        password = request.data.get('password')
         user = request.user
-        user.delete()
-        return Response({"message": "회원 탈퇴가 성공적으로 처리되었습니다."}, status=status.HTTP_204_NO_CONTENT)
-    
+        if user.check_password(password):
+            user.delete()
+            return Response({"message": "회원 탈퇴가 성공적으로 처리되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response({"message": "비밀번호가 올바르지 않습니다."}, status=status.HTTP_403_FORBIDDEN)
+
 class Request2FAView(APIView):
     """
     Request2FAView는 사용자에게 2단계 인증(2FA) 코드를 이메일로 전송하는 API 엔드포인트를 제공합니다.
