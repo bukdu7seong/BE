@@ -81,7 +81,7 @@ class MyLoginView(ViewSet):
         else:
             raise ValidationError("Invalid code")
 
-    @action(methods=['get'], detail=False, url_path='2fa/re')
+    @action(methods=['post'], detail=False, url_path='2fa/re')
     @transaction.atomic
     def resend_verification_email(self, request):
         email = request.data.get('email')
