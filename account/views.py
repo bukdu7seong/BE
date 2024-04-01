@@ -85,7 +85,7 @@ class MyLoginView(ViewSet):
     @transaction.atomic
     def resend_verification_email(self, request):
         email = request.data.get('email')
-        user = User.objects.get(email=request.data.get(email))
+        user = User.objects.get(email=email)
         verification = user.emailverification
         EmailService.send_verification_email(user, verification.type)
         return Response(status.HTTP_200_OK)
