@@ -8,7 +8,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.db import transaction
 from django.db.models import Q
 from ts.exceptions import InvalidGameModeException, PlayerNotMatchedException
-
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 AppUser = get_user_model()
 
 class GameResultView(APIView):
@@ -87,23 +87,43 @@ class GameResultView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 
-class GameHistoryView(APIView, PageNumberPagination):
+class GameHistoryView(APIView):
     permission_classes = [IsAuthenticated]
-    page_size = 5
 
     def get(self, request):
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('pageSize', 5)
+        try:
+            page = int(page)
+            page_size = int(page_size)
+        except ValueError:
+            return Response({'error': 'Invalid page or pageSize'}, status=status.HTTP_400_BAD_REQUEST)
+
         user = request.user
         games = Game.objects.filter(Q(winner=user) | Q(loser=user)).order_by('-played_at')
-        result_page = self.paginate_queryset(games, request, view=self)
-        if result_page is not None:
-            games_data = [{
-                "id": game.game_id,
-                "other": game.player2.username if game.player1 == user else game.player1.username,
-                "other_img": game.player2.image.url if game.player1 == user else game.player1.image.url,
-                "winner": True if game.winner == user else False,
-                "game_mode": game.game_mode,
-                "played_at": game.played_at.strftime('%Y-%m-%d %H:%M:%S')
-            } for game in result_page]
-            return self.get_paginated_response(games_data)
-        else:
-            return Response([], status=status.HTTP_200_OK)
+        paginator = Paginator(games, page_size)
+
+        try:
+            games_page = paginator.page(page)
+        except PageNotAnInteger:
+            return Response({'error': 'Page not an integer'}, status=status.HTTP_400_BAD_REQUEST)
+        except EmptyPage:
+            return Response({'error': 'Page out of range'}, status=status.HTTP_404_NOT_FOUND)
+
+        games_data = [{
+            "id": game.game_id,
+            "other": (game.player2.username if game.player2 else "N/A") if game.player1 == user else (game.player1.username if game.player1 else "N/A"),
+            "other_img": game.player2.image.url if game.player2 is not None and game.player1 == user else game.player1.image.url if game.player1 is not None else None,
+            "winner": True if game.winner == user else False,
+            "game_mode": game.game_mode,
+            "played_at": game.played_at.strftime('%Y-%m-%d %H:%M:%S')
+        } for game in games_page]
+
+
+        return Response({
+            'page': page,
+            'pageSize': page_size,
+            'total': paginator.count,
+            'totalPages': paginator.num_pages,
+            'games': games_data
+        })
