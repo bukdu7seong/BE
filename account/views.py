@@ -238,15 +238,13 @@ from rest_framework.permissions import IsAuthenticated
 
 class UserDetailView(generics.RetrieveAPIView):
     """
-    UserDetailView는 Django REST Framework의 generics.RetrieveAPIView를 상속받아 구현된 클래스 뷰입니다.
-    이 뷰는 특정 사용자의 상세 정보를 조회하는 API 엔드포인트를 제공합니다.
+    특정 사용자의 상세 정보를 조회하는 API 엔드포인트입니다.
+    - queryset: User 모델의 모든 인스턴스 대상.
+    - serializer_class: UserDetailSerializer 사용.
+    - lookup_field: 'username'을 통해 사용자 식별.
+    - permission_classes: [IsAuthenticated]로 로그인한 사용자만 접근 가능.
 
-    - queryset: User 모델의 모든 인스턴스를 대상으로 합니다. 이를 통해 데이터베이스에서 사용자 정보를 조회할 수 있습니다.
-    - serializer_class: UserDetailSerializer를 사용하여 조회된 사용자 정보를 직렬화합니다. 이를 통해 클라이언트에게 전달될 데이터의 형식을 정의합니다.
-    - lookup_field: URL에서 사용자를 식별하기 위한 필드로 'username'을 사용합니다. 이는 URL 경로에 포함된 username 값을 통해 특정 사용자를 조회할 수 있게 합니다.
-    - permission_classes: [IsAuthenticated]를 통해 이 뷰에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 이 API를 통해 사용자 정보를 조회할 수 있습니다.
-
-    이 클래스 뷰는 'api/account/search/<str:username>/' URL 패턴에 연결되어 있으며, 해당 URL로 GET 요청이 들어오면 지정된 username에 해당하는 사용자의 상세 정보를 반환합니다.
+    URL: 'api/account/search/<str:username>/'
     """
 
     queryset = User.objects.all()
@@ -256,20 +254,13 @@ class UserDetailView(generics.RetrieveAPIView):
 
 class UserProfileStatsView(APIView):
     """
-    UserProfileStatsView는 사용자의 프로필 통계 정보를 제공하는 API 엔드포인트입니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    사용자 프로필 통계 정보 제공 API.
+    - 로그인한 사용자만 접근 가능([IsAuthenticated]).
+    - GET: 사용자의 게임 승률, 승리/패배 횟수 등 통계 정보 제공.
+    - URL: 'api/account/user/profile-stats/'
 
-    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 자신의 프로필 통계 정보를 조회할 수 있습니다.
-
-    GET 요청:
-    이 뷰는 GET 요청을 처리하여 사용자의 게임 승률, 승리 횟수, 패배 횟수 등의 통계 정보를 제공합니다. 
-    - 사용자는 request.user를 통해 인증된 사용자 객체를 얻습니다.
-    - player2가 존재하는 게임만을 대상으로 하여, 사용자가 승리한 게임의 수(games_won)와 패배한 게임의 수(games_lost)를 계산합니다.
-    - 총 게임 수(total_games)는 승리한 게임의 수와 패배한 게임의 수의 합입니다.
-    - 승률(win_rate)은 승리한 게임의 수를 총 게임 수로 나눈 후 100을 곱하여 계산합니다. 총 게임 수가 0인 경우 승률은 0으로 처리합니다.
-    - 사용자의 기본 정보(user_info)와 게임 통계 정보(game_info)를 포함한 응답을 반환합니다.
-
-    이 클래스 뷰는 'api/account/user/profile-stats/' URL 패턴에 연결되어 있으며, 해당 URL로 GET 요청이 들어오면 인증된 사용자의 프로필 통계 정보를 반환합니다.
+    게임 승률은 승리한 게임 수를 총 게임 수로 나눈 후 100을 곱해 계산.
+    응답에는 사용자 기본 정보와 게임 통계 정보 포함.
     """
     permission_classes = [IsAuthenticated]
 
@@ -302,26 +293,12 @@ class UserProfileStatsView(APIView):
 
 class ChangeUsernameView(APIView):
     """
-    ChangeUsernameView는 사용자의 username을 변경하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    사용자의 username 변경 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - PATCH: 'new_username'으로 username 변경.
+    - URL: 'change-username/'
 
-    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 자신의 username을 변경할 수 있습니다.
-
-    PATCH 요청:
-    이 뷰는 PATCH 요청을 처리하여 사용자의 username을 변경합니다.
-    - 사용자는 request.user를 통해 인증된 사용자 객체를 얻습니다.
-    - request.data에서 'new_username' 키를 통해 전달받은 새로운 username 값을 사용자 객체에 저장합니다.
-    - username이 성공적으로 변경되면, 변경된 username 정보를 포함한 응답을 반환합니다.
-    - 만약 새로운 username이 이미 다른 사용자에 의해 사용 중인 경우, IntegrityError 예외가 발생하며, 이에 대한 에러 메시지를 응답으로 반환합니다.
-
-    이 클래스 뷰는 'change-username/' URL 패턴에 연결되어 있으며, 해당 URL로 PATCH 요청이 들어오면 인증된 사용자의 username을 변경하는 처리를 수행합니다.
-
-    주요 처리 과정:
-    1. 인증된 사용자 객체를 request.user를 통해 얻습니다.
-    2. request.data에서 'new_username' 값을 추출합니다.
-    3. 추출한 'new_username' 값으로 사용자의 username을 업데이트합니다.
-    4. username 변경이 성공적으로 이루어지면, 변경된 정보를 포함한 응답을 클라이언트에게 반환합니다.
-    5. 변경하려는 username이 이미 존재하는 경우, IntegrityError 예외를 처리하고, 적절한 에러 메시지를 응답으로 반환합니다.
+    성공 시 변경된 username 정보 반환, 실패 시 에러 메시지 반환.
     """
     permission_classes = [IsAuthenticated]
 
@@ -340,26 +317,12 @@ class ChangeUsernameView(APIView):
 
 class UpdateUserImageView(APIView):
     """
-    UpdateUserImageView는 사용자의 프로필 이미지를 업데이트하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    사용자 프로필 이미지 업데이트 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - PATCH: 이미지 파일로 프로필 이미지 업데이트.
+    - URL: 'update-image/'
 
-    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 자신의 프로필 이미지를 업데이트할 수 있습니다.
-
-    PATCH 요청:
-    이 뷰는 PATCH 요청을 처리하여 사용자의 프로필 이미지를 업데이트합니다.
-    - 사용자는 request.user를 통해 인증된 사용자 객체를 얻습니다.
-    - request.data에서 전달받은 이미지 파일을 사용자 객체의 이미지 필드에 저장합니다.
-    - 이미지 업데이트가 성공적으로 이루어지면, 업데이트된 이미지 정보를 포함한 응답을 반환합니다.
-    - 이미지 업데이트 과정에서 오류가 발생한 경우, 해당 에러 메시지를 응답으로 반환합니다.
-
-    이 클래스 뷰는 'update-image/' URL 패턴에 연결되어 있으며, 해당 URL로 PATCH 요청이 들어오면 인증된 사용자의 프로필 이미지를 업데이트하는 처리를 수행합니다.
-
-    주요 처리 과정:
-    1. 인증된 사용자 객체를 request.user를 통해 얻습니다.
-    2. request.data를 사용하여 UserImageUpdateSerializer를 통해 이미지 데이터를 검증합니다.
-    3. 검증이 성공하면, 사용자 객체의 이미지 필드를 업데이트하고 데이터베이스에 저장합니다.
-    4. 이미지 업데이트가 성공적으로 이루어지면, 업데이트된 이미지 정보를 포함한 응답을 클라이언트에게 반환합니다.
-    5. 이미지 업데이트 과정에서 오류가 발생한 경우, 적절한 에러 메시지를 응답으로 반환합니다.
+    성공 시 업데이트된 이미지 정보 반환, 실패 시 에러 메시지 반환.
     """
     permission_classes = [IsAuthenticated]
 
@@ -374,28 +337,12 @@ class UpdateUserImageView(APIView):
 
 class ChangePasswordView(generics.UpdateAPIView):
     """
-    ChangePasswordView는 사용자의 비밀번호를 변경하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 generics.UpdateAPIView를 상속받아 구현되었습니다.
+    사용자 비밀번호 변경 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - PATCH: 'old_password'와 'new_password' 사용하여 비밀번호 변경.
+    - URL: 'change-password/'
 
-    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 자신의 비밀번호를 변경할 수 있습니다.
-
-    PATCH 요청:
-    이 뷰는 PATCH 요청을 처리하여 사용자의 비밀번호를 변경합니다.
-    - 사용자는 request.user를 통해 인증된 사용자 객체를 얻습니다.
-    - request.data에서 'old_password'와 'new_password' 키를 통해 전달받은 기존 비밀번호와 새로운 비밀번호 값을 사용합니다.
-    - 기존 비밀번호가 일치하는 경우에만 새로운 비밀번호로 업데이트합니다.
-    - 비밀번호 변경이 성공적으로 이루어지면, 성공 메시지를 포함한 응답을 반환합니다.
-    - 기존 비밀번호가 일치하지 않는 경우, 적절한 에러 메시지를 응답으로 반환합니다.
-
-    이 클래스 뷰는 'change-password/' URL 패턴에 연결되어 있으며, 해당 URL로 PATCH 요청이 들어오면 인증된 사용자의 비밀번호를 변경하는 처리를 수행합니다.
-
-    주요 처리 과정:
-    1. 인증된 사용자 객체를 request.user를 통해 얻습니다.
-    2. request.data에서 'old_password'와 'new_password' 값을 추출합니다.
-    3. 사용자의 기존 비밀번호가 입력된 'old_password'와 일치하는지 확인합니다.
-    4. 일치하는 경우, 'new_password' 값을 사용하여 사용자의 비밀번호를 업데이트합니다.
-    5. 비밀번호 변경이 성공적으로 이루어지면, 성공 메시지를 포함한 응답을 클라이언트에게 반환합니다.
-    6. 기존 비밀번호가 일치하지 않는 경우, 적절한 에러 메시지를 응답으로 반환합니다.
+    기존 비밀번호 일치 시 새 비밀번호로 업데이트, 일치하지 않으면 에러 메시지 반환.
     """
     permission_classes = [IsAuthenticated]
     serializer_class = UserDetailSerializer
@@ -414,19 +361,12 @@ class ChangePasswordView(generics.UpdateAPIView):
 
 class OtherUserProfileStatsView(APIView):
     """
-    OtherUserProfileStatsView는 다른 사용자의 프로필 통계 정보를 조회하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    다른 사용자의 프로필 통계 정보 조회 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - GET: 'user_id'를 통해 특정 사용자의 게임 승률, 승리/패배 횟수 등 조회.
+    - URL: 'api/account/user-stats/<int:user_id>/'
 
-    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 다른 사용자의 프로필 통계 정보를 조회할 수 있습니다.
-
-    GET 요청:
-    이 뷰는 GET 요청을 처리하여 특정 사용자의 게임 승률, 승리 횟수, 패배 횟수 등의 통계 정보를 제공합니다.
-    - URL 경로에서 'user_id'를 통해 조회하고자 하는 사용자의 ID를 받습니다.
-    - 해당 ID를 사용하여 데이터베이스에서 사용자 객체를 조회합니다.
-    - 조회된 사용자 객체를 기반으로 UserProfileStatsSerializer를 사용하여 프로필 통계 정보를 직렬화하고, 이를 응답으로 반환합니다.
-    - 만약 주어진 'user_id'에 해당하는 사용자를 찾을 수 없는 경우, 적절한 에러 메시지와 함께 404 Not Found 응답을 반환합니다.
-
-    이 클래스 뷰는 'api/account/user-stats/<int:user_id>/' URL 패턴에 연결되어 있으며, 해당 URL로 GET 요청이 들어오면 지정된 사용자 ID에 해당하는 사용자의 프로필 통계 정보를 반환합니다.
+    사용자를 찾을 수 없는 경우 404 응답 반환.
     """
     permission_classes = [IsAuthenticated]
 
@@ -442,92 +382,61 @@ class OtherUserProfileStatsView(APIView):
 
 class UpdateUser2FAView(APIView):
     """
-    UpdateUser2FAView는 사용자의 2단계 인증(2FA) 설정을 업데이트하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    사용자의 2단계 인증(2FA) 설정 업데이트 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - PATCH: 'is_2fa'로 2FA 설정 업데이트.
+    - URL: 'update-2fa/'
 
-    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 자신의 2FA 설정을 업데이트할 수 있습니다.
-
-    PATCH 요청:
-    이 뷰는 PATCH 요청을 처리하여 사용자의 2FA 설정을 업데이트합니다.
-    - 사용자는 request.user를 통해 인증된 사용자 객체를 얻습니다.
-    - request.data에서 'is_2fa' 키를 통해 전달받은 2FA 설정 값을 사용자 객체에 저장합니다.
-    - 2FA 설정 업데이트가 성공적으로 이루어지면, 업데이트된 2FA 설정 정보를 포함한 응답을 반환합니다.
-    - 2FA 설정 업데이트 과정에서 오류가 발생한 경우, 해당 에러 메시지를 응답으로 반환합니다.
-
-    이 클래스 뷰는 'update-2fa/' URL 패턴에 연결되어 있으며, 해당 URL로 PATCH 요청이 들어오면 인증된 사용자의 2FA 설정을 업데이트하는 처리를 수행합니다.
-
-    주요 처리 과정:
-    1. 인증된 사용자 객체를 request.user를 통해 얻습니다.
-    2. request.data를 사용하여 User2FASerializer를 통해 2FA 설정 데이터를 검증합니다.
-    3. 검증이 성공하면, 사용자 객체의 2FA 설정을 업데이트하고 데이터베이스에 저장합니다.
-    4. 2FA 설정 업데이트가 성공적으로 이루어지면, 업데이트된 2FA 설정 정보를 포함한 응답을 클라이언트에게 반환합니다.
-    5. 2FA 설정 업데이트 과정에서 오류가 발생한 경우, 적절한 에러 메시지를 응답으로 반환합니다.
+    성공 시 업데이트된 2FA 설정 정보 반환, 실패 시 에러 메시지 반환.
     """
     permission_classes = [IsAuthenticated]
 
     @transaction.atomic
     def patch(self, request, *args, **kwargs):
         user = request.user
+        if not set(request.data.keys()).issubset({'is_2fa'}):
+            return Response({"error": "유효하지 않은 요청입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = User2FASerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "2FA 설정이 업데이트 되었습니다."})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     
 class UpdateUserLanguageView(APIView):
     """
-    UpdateUserLanguageView는 사용자의 선호하는 언어 설정을 업데이트하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    사용자 선호 언어 설정 업데이트 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - PATCH: 'language'로 언어 설정 업데이트.
+    - URL: 'update-language/'
 
-    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 자신의 언어 설정을 업데이트할 수 있습니다.
-
-    PATCH 요청:
-    이 뷰는 PATCH 요청을 처리하여 사용자의 언어 설정을 업데이트합니다.
-    - 사용자는 request.user를 통해 인증된 사용자 객체를 얻습니다.
-    - request.data에서 'language' 키를 통해 전달받은 새로운 언어 설정 값을 사용자 객체에 저장합니다.
-    - 언어 설정 업데이트가 성공적으로 이루어지면, 업데이트된 언어 설정 정보를 포함한 응답을 반환합니다.
-    - 언어 설정 업데이트 과정에서 오류가 발생한 경우, 해당 에러 메시지를 응답으로 반환합니다.
-
-    이 클래스 뷰는 'update-language/' URL 패턴에 연결되어 있으며, 해당 URL로 PATCH 요청이 들어오면 인증된 사용자의 언어 설정을 업데이트하는 처리를 수행합니다.
-
-    주요 처리 과정:
-    1. 인증된 사용자 객체를 request.user를 통해 얻습니다.
-    2. request.data를 사용하여 UserLanguageUpdateSerializer를 통해 언어 설정 데이터를 검증합니다.
-    3. 검증이 성공하면, 사용자 객체의 언어 설정을 업데이트하고 데이터베이스에 저장합니다.
-    4. 언어 설정 업데이트가 성공적으로 이루어지면, 업데이트된 언어 설정 정보를 포함한 응답을 클라이언트에게 반환합니다.
-    5. 언어 설정 업데이트 과정에서 오류가 발생한 경우, 적절한 에러 메시지를 응답으로 반환합니다.
+    성공 시 업데이트된 언어 설정 정보 반환, 실패 시 에러 메시지 반환.
     """
     permission_classes = [IsAuthenticated]
 
     @transaction.atomic
     def patch(self, request, *args, **kwargs):
         user = request.user
+        if not set(request.data.keys()).issubset({'language'}):
+            return Response({"error": "유효하지 않은 요청입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = UserLanguageUpdateSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "언어 설정이 업데이트 되었습니다."})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class UserDeleteView(APIView):
     """
-    UserDeleteView는 사용자 계정을 삭제하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    사용자 계정 삭제 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - DELETE: 사용자 계정 삭제.
+    - URL: 'delete-account/'
 
-    - permission_classes: [IsAuthenticated]를 사용하여 이 API 엔드포인트에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 자신의 계정을 삭제할 수 있습니다.
-
-    DELETE 요청:
-    이 뷰는 DELETE 요청을 처리하여 사용자의 계정을 삭제합니다.
-    - 사용자는 request.user를 통해 인증된 사용자 객체를 얻습니다.
-    - 사용자 객체를 삭제하고, 성공적으로 처리되면, 성공 메시지를 포함한 응답을 반환합니다.
-    - 계정 삭제 과정에서 오류가 발생한 경우, 해당 에러 메시지를 응답으로 반환합니다.
-
-    이 클래스 뷰는 'delete-account/' URL 패턴에 연결되어 있으며, 해당 URL로 DELETE 요청이 들어오면 인증된 사용자의 계정을 삭제하는 처리를 수행합니다.
-
-    주요 처리 과정:
-    1. 인증된 사용자 객체를 request.user를 통해 얻습니다.
-    2. 사용자 객체를 데이터베이스에서 삭제합니다.
-    3. 계정 삭제가 성공적으로 이루어지면, 성공 메시지를 포함한 응답을 클라이언트에게 반환합니다.
-    4. 계정 삭제 과정에서 오류가 발생한 경우, 적절한 에러 메시지를 응답으로 반환합니다.
+    성공 시 성공 메시지 반환, 실패 시 에러 메시지 반환.
     """
     permission_classes = [IsAuthenticated]
 
@@ -543,28 +452,12 @@ class UserDeleteView(APIView):
 
 class Request2FAView(APIView):
     """
-    Request2FAView는 사용자에게 2단계 인증(2FA) 코드를 이메일로 전송하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    2FA 코드 이메일 전송 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - POST: 사용자 이메일로 2FA 코드 전송.
+    - URL: 'request-2fa/'
 
-    - permission_classes: [IsAuthenticated]를 통해 이 뷰에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 이 API를 통해 사용자 정보를 조회할 수 있습니다.
-
-    POST 요청:
-    이 뷰는 POST 요청을 처리하여 사용자의 이메일 주소로 2FA 코드를 전송합니다.
-    - 요청에서 'email' 키를 통해 전달받은 이메일 주소를 사용하여 해당 이메일 주소를 가진 사용자를 데이터베이스에서 조회합니다.
-    - 해당 사용자가 존재하지 않는 경우, 적절한 에러 메시지와 함께 404 Not Found 응답을 반환합니다.
-    - 사용자가 존재하는 경우, EmailService 클래스를 사용하여 2FA 코드를 생성하고, 이메일 인증 정보를 업데이트한 후, 
-      생성된 2FA 코드를 사용자의 이메일 주소로 전송합니다.
-    - 2FA 코드 전송이 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다.
-
-    이 클래스 뷰는 'request-2fa/' URL 패턴에 연결되어 있으며, 해당 URL로 POST 요청이 들어오면 사용자의 이메일 주소로 2FA 코드를 전송하는 처리를 수행합니다.
-
-    주요 처리 과정:
-    1. POST 요청에서 'email' 키를 통해 전달받은 이메일 주소를 사용하여 데이터베이스에서 해당 이메일 주소를 가진 사용자를 조회합니다.
-    2. 해당 사용자가 존재하지 않는 경우, 적절한 에러 메시지와 함께 404 Not Found 응답을 반환합니다.
-    3. 사용자가 존재하는 경우, EmailService 클래스의 get_verification_code 메서드를 호출하여 2FA 코드를 생성합니다.
-    4. 생성된 2FA 코드와 '2fa' 타입을 사용하여 사용자의 이메일 인증 정보를 업데이트합니다.
-    5. EmailService 클래스의 send_verification_email 메서드를 호출하여 생성된 2FA 코드를 사용자의 이메일 주소로 전송합니다.
-    6. 2FA 코드 전송이 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다.
+    이메일 주소 제공 시 2FA 코드 전송, 없거나 사용자 미존재 시 에러 반환.
     """
     permission_classes = [IsAuthenticated]
 
@@ -587,26 +480,12 @@ class Request2FAView(APIView):
 
 class Verify2FAView(APIView):
     """
-    Verify2FAView는 사용자가 제공한 2단계 인증(2FA) 코드를 검증하는 API 엔드포인트를 제공합니다.
-    이 뷰는 Django REST Framework의 APIView를 상속받아 구현되었습니다.
+    2FA 코드 검증 API.
+    - 접근: 로그인한 사용자([IsAuthenticated]).
+    - POST: 이메일, 2FA 코드, 게임 ID를 사용하여 2FA 코드 검증 및 게임 정보 업데이트.
+    - URL: 'verify-2fa/'
 
-    - permission_classes: [IsAuthenticated]를 통해 이 뷰에 접근할 수 있는 사용자를 인증된 사용자로 제한합니다. 즉, 로그인한 사용자만이 이 API를 통해 사용자 정보를 조회할 수 있습니다.
-      즉, 인증되지 않은 사용자도 2FA 코드를 검증할 수 있습니다.
-
-    POST 요청:
-    이 뷰는 POST 요청을 처리하여 사용자가 제공한 2FA 코드의 유효성을 검증합니다.
-    - 요청에서 'email', 'code', 그리고 'game_id' 키를 통해 전달받은 이메일 주소, 2FA 코드, 게임 ID를 사용합니다.
-    - 해당 이메일 주소를 가진 사용자를 데이터베이스에서 조회합니다. 사용자가 존재하지 않는 경우, 적절한 에러 메시지와 함께 404 Not Found 응답을 반환합니다.
-    - EmailService 클래스를 사용하여 제공된 2FA 코드의 유효성을 검증합니다. 코드가 유효한 경우, 게임 ID에 해당하는 게임 객체를 조회하고, player2 필드를 업데이트합니다.
-    - 2FA 코드 검증이 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다. 코드가 유효하지 않거나, 게임 ID에 해당하는 게임을 찾을 수 없는 경우, 적절한 에러 메시지를 반환합니다.
-
-    이 클래스 뷰는 'verify-2fa/' URL 패턴에 연결되어 있으며, 해당 URL로 POST 요청이 들어오면 사용자의 2FA 코드를 검증하는 처리를 수행합니다.
-
-    주요 처리 과정:
-    1. POST 요청에서 'email', 'code', 'game_id' 키를 통해 전달받은 값을 사용하여 데이터베이스에서 해당 이메일 주소를 가진 사용자와 게임 ID에 해당하는 게임을 조회합니다.
-    2. 해당 사용자가 존재하지 않거나, 제공된 2FA 코드가 유효하지 않은 경우, 적절한 에러 메시지와 함께 응답을 반환합니다.
-    3. 게임 ID에 해당하는 게임이 존재하고, player2 필드가 비어있는 경우, player2 필드를 업데이트하고 게임 결과를 업데이트합니다.
-    4. 2FA 코드 검증 및 게임 업데이트가 성공적으로 완료되면, 성공 메시지를 포함한 응답을 반환합니다.
+    이메일, 2FA 코드, 게임 ID 제공 시 코드 검증 및 게임 정보 업데이트, 실패 시 에러 메시지 반환.
     """
     permission_classes = [IsAuthenticated]
 
