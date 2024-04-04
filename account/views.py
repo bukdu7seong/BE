@@ -102,7 +102,8 @@ class MyLoginView(ViewSet):
                 user = User.objects.get(email=email)
                 if user.is_2fa:
                     EmailService.send_verification_email(user, 'login')
-                    return Response(status=status.HTTP_301_MOVED_PERMANENTLY)
+                    data = { 'email': user.email }
+                    return Response(data, status=status.HTTP_301_MOVED_PERMANENTLY)
                 request.data['email'] = email
                 refresh = RefreshToken.for_user(user)
                 return Response({
