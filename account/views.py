@@ -59,8 +59,11 @@ class MyLoginView(ViewSet):
 
     @action(detail=False, methods=['get'], url_path='check')
     def checkUsername(self, request):
+        username = request.query_params.get('username')
+        if not username:
+            return Response({"error": "username parameter is missing."}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            user = User.objects.get(request.data.get('username'))
+            User.objects.get(username=username)
         except User.DoesNotExist:
             return Response(False, status=status.HTTP_200_OK)
         return Response(True, status=status.HTTP_200_OK)
